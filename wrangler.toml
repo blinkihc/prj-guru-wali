@@ -1,0 +1,25 @@
+# Wrangler configuration for Cloudflare Pages
+# Last updated: 2025-10-12
+
+name = "prj-guru-wali"
+compatibility_date = "2025-01-10"
+pages_build_output_dir = ".vercel/output/static"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "guru-wali-db"
+database_id = "3d60a482-1a12-4acd-8d6f-c60abf822bf3"
+
+# R2 Storage binding (for file uploads)
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "guru-wali-storage"
+
+# Environment variables for local development
+[vars]
+ENVIRONMENT = "development"
+
+# Production environment variables
+[env.production]
+vars = { ENVIRONMENT = "production" }
