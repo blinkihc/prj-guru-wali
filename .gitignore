@@ -49,3 +49,6 @@ worker-configuration.d.ts
 # Database
 /drizzle/migrations/*.sql
 !drizzle/migrations/.gitkeep
+
+# Documentation (local only)
+/docs/
