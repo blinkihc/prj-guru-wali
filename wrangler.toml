@@ -23,3 +23,14 @@ ENVIRONMENT = "development"
 # Production environment variables
 [env.production]
 vars = { ENVIRONMENT = "production" }
+
+# Production D1 Database binding
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "guru-wali-db"
+database_id = "3d60a482-1a12-4acd-8d6f-c60abf822bf3"
+
+# Production R2 Storage binding
+[[env.production.r2_buckets]]
+binding = "STORAGE"
+bucket_name = "guru-wali-storage"
