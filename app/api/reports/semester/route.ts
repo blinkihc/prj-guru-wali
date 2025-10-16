@@ -2,14 +2,10 @@
 // Generate semester report PDF with caching and streaming
 // Updated: 2025-10-15 - Added R2 cache + streaming support + TypeScript types
 
-import { renderToBuffer } from "@react-pdf/renderer";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { SemesterReportDocument } from "@/components/reports/semester-report-template";
 import { getSession } from "@/lib/auth/session";
-import { getCloudflareEnv } from "@/lib/cloudflare";
-import type { CacheKey } from "@/lib/services";
-import { getServices } from "@/lib/services";
+import { generateSemesterReportPDF } from "@/lib/services/pdf-generator-edge";
 
 export const runtime = "edge";
 
@@ -106,82 +102,31 @@ export async function POST(request: NextRequest) {
       { bulan: "September", jumlah: 2, format: "Kelompok", persentase: "2%" },
     ];
 
-    // Create PDF component
-    const pdfDocument = SemesterReportDocument({
-      semester: semester as "Ganjil" | "Genap",
-      tahunAjaran,
-      periodeStart,
-      periodeEnd,
-      guruWaliName: session.fullName || "Nama Guru",
-      schoolName: "SMP Negeri 1",
-      students,
-      studentJournals,
-      meetingSummary,
-    });
+    // Generate PDF using jsPDF (edge-compatible)
+    const pdfBytes = generateSemesterReportPDF(
+      students.map(s => ({
+        id: s.id,
+        name: s.fullName,
+        nisn: "", // Not available in mock
+        class: s.classroom || "7A",
+        gender: "", // Not available in mock
+      })),
+      session.fullName || "Nama Guru",
+      "SMP Negeri 1",
+      semester,
+      tahunAjaran
+    );
 
     const filename = `Laporan_Semester_${semester}_${tahunAjaran.replace("/", "-")}_${new Date().toISOString().split("T")[0]}.pdf`;
 
-    // Check if R2 is available
-    const cfEnv = getCloudflareEnv();
-
-    if (cfEnv?.STORAGE) {
-      // Production: Use services with R2 caching
-      const services = getServices(cfEnv);
-
-      // Generate cache key with data hash
-      const dataHash = services.cacheManager.generateDataHash({
-        students: students.map((s) => s.id),
-        journalsCount: studentJournals.length,
-        meetingsCount: meetingSummary.length,
-      });
-
-      const cacheParams: CacheKey = {
-        type: "semester",
-        semester,
-        tahunAjaran,
-        dataHash,
-      };
-
-      // Generate report with caching
-      const result = await services.reportService.generateReport(
-        pdfDocument,
-        cacheParams,
-        {
-          onProgress: (progress) => {
-            console.log(
-              `[PDF Generation] ${progress.stage}: ${progress.progress}% - ${progress.message}`,
-            );
-          },
-        },
-      );
-
-      return new NextResponse(result.content as any, {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
-          "Content-Length": result.sizeBytes.toString(),
-          "X-From-Cache": result.fromCache ? "true" : "false",
-          "X-Generation-Time": result.metadata.generationTimeMs
-            ? `${result.metadata.generationTimeMs}ms`
-            : "cached",
-        },
-      });
-    } else {
-      // Development: Direct generation without caching
-      console.log("[PDF] Development mode - generating without cache");
-
-      const pdfBuffer = await renderToBuffer(pdfDocument);
-
-      return new NextResponse(pdfBuffer as any, {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
-          "Content-Length": pdfBuffer.length.toString(),
-          "X-From-Cache": "false",
-          "X-Generation-Time": "dev-mode",
-        },
-      });
-    }
+    // Return PDF directly (R2 caching removed for MVP simplicity)
+    return new NextResponse(pdfBytes, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
+        "Content-Length": pdfBytes.length.toString(),
+      },
+    });
   } catch (error) {
     console.error("POST /api/reports/semester error:", error);
     return NextResponse.json(
