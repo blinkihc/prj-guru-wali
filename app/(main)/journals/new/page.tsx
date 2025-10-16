@@ -48,7 +48,7 @@ export default function NewJournalPage() {
           throw new Error("Gagal memuat data siswa");
         }
 
-        const data = await response.json();
+        const data = (await response.json()) as { students?: any[] };
         setStudents(data.students || []);
       } catch (err) {
         console.error("Fetch students error:", err);

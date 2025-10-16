@@ -135,11 +135,11 @@ export default function StudentImportPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = (await response.json()) as { error?: string };
         throw new Error(error.error || "Gagal mengimport data");
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as { imported?: number };
       toast.success(`Berhasil mengimport ${result.imported} siswa!`);
 
       // Redirect to students page

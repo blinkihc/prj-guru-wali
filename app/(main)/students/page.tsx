@@ -43,7 +43,7 @@ export default function StudentsPage() {
         throw new Error("Failed to fetch students");
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { students?: any[] };
       setStudents(data.students || []);
     } catch (err) {
       console.error("Fetch students error:", err);
