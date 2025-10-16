@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get D1 binding
+    // Get D1 binding (with fallback for local dev)
     let hasProfile = false;
     try {
       // @ts-ignore
@@ -30,19 +30,23 @@ export async function GET(request: NextRequest) {
       const ctx = getRequestContext();
       const env = ctx?.env as any;
 
-      if (env?.DB) {
-        const db = getDb(env.DB);
-        const [profile] = await db
-          .select()
-          .from(schoolProfiles)
-          .where(eq(schoolProfiles.userId, session.userId))
-          .limit(1);
-
-        hasProfile = !!profile;
+      if (!env?.DB) {
+        // Local dev fallback - return false (show banner)
+        console.warn("[ProfileCheck] Running in local dev mode - returning false");
+        return NextResponse.json({ hasProfile: false });
       }
+
+      const db = getDb(env.DB);
+      const [profile] = await db
+        .select()
+        .from(schoolProfiles)
+        .where(eq(schoolProfiles.userId, session.userId))
+        .limit(1);
+
+      hasProfile = !!profile;
     } catch (error) {
-      console.error("[ProfileCheck] Error checking profile:", error);
-      // Return false on error (safe default)
+      console.warn("[ProfileCheck] Cloudflare context not available - returning false");
+      // Return false on error (safe default - show banner)
       hasProfile = false;
     }
 
