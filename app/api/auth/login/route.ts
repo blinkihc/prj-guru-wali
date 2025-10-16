@@ -1,8 +1,13 @@
 // Login API route
-// Last updated: 2025-10-12
+// Last updated: 2025-10-16
 
 import { type NextRequest, NextResponse } from "next/server";
+import { compare } from "bcryptjs";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { users } from "@/drizzle/schema";
 import { createSession } from "@/lib/auth/session";
+import { getCloudflareEnv } from "@/lib/cloudflare";
 
 export const runtime = "edge";
 
@@ -19,25 +24,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: In production, get D1 binding from getRequestContext()
-    // For MVP demo, use hardcoded credentials
-    const DEMO_USER = {
-      id: "demo-user-001",
-      email: "guru@example.com",
-      password: "password123",
-      fullName: "Ibu Siti Rahayu",
-    };
+    // Get D1 binding from Cloudflare environment
+    const env = getCloudflareEnv();
+    if (!env?.DB) {
+      console.error("D1 database binding not found");
+      return NextResponse.json(
+        { error: "Database tidak tersedia" },
+        { status: 503 },
+      );
+    }
 
-    // Check email
-    if (email.toLowerCase() !== DEMO_USER.email) {
+    // Get database instance
+    const db = getDb(env.DB);
+
+    // Find user by email
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (!user) {
       return NextResponse.json(
         { error: "Email atau password salah" },
         { status: 401 },
       );
     }
 
-    // Check password (direct match for demo, in production use bcrypt)
-    if (password !== DEMO_USER.password) {
+    // Verify password with bcrypt
+    const isPasswordValid = await compare(password, user.hashedPassword);
+
+    if (!isPasswordValid) {
       return NextResponse.json(
         { error: "Email atau password salah" },
         { status: 401 },
@@ -45,14 +62,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session
-    await createSession(DEMO_USER.id, DEMO_USER.email, DEMO_USER.fullName);
+    await createSession(user.id, user.email, user.fullName);
 
     return NextResponse.json({
       success: true,
       user: {
-        id: DEMO_USER.id,
-        email: DEMO_USER.email,
-        fullName: DEMO_USER.fullName,
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
       },
     });
   } catch (error) {
