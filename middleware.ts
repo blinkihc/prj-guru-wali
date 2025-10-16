@@ -7,10 +7,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public pages (can redirect if already authenticated)
-  const publicPages = ["/login"];
-
-  // Setup page (requires authentication, no redirect)
-  const setupPages = ["/setup"];
+  const publicPages = ["/login", "/setup"];
 
   // Public API routes (always accessible, never redirect)
   const publicApiRoutes = [
@@ -19,9 +16,8 @@ export async function middleware(request: NextRequest) {
     "/api/auth/setup",
   ];
 
-  // Check if current path is public or setup
+  // Check if current path is public
   const isPublicPage = publicPages.some((route) => pathname.startsWith(route));
-  const isSetupPage = setupPages.some((route) => pathname.startsWith(route));
   const isPublicApi = publicApiRoutes.some((route) =>
     pathname.startsWith(route),
   );
@@ -34,16 +30,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // If accessing protected route (not public page/api/setup) and not logged in, redirect to login
-  if (!isPublicPage && !isPublicApi && !isSetupPage && !session) {
+  // If accessing protected route (not public page/api) and not logged in, redirect to login
+  if (!isPublicPage && !isPublicApi && !session) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // If accessing setup page without session, redirect to login
-  if (isSetupPage && !session) {
-    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return NextResponse.next();
