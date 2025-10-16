@@ -170,11 +170,11 @@ export function ImportDialog({
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = (await response.json()) as { error?: string };
         throw new Error(error.error || "Import gagal");
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as { imported?: number };
       toast.success(
         `Berhasil mengimpor ${result.imported} dari ${validData.length} siswa`,
       );

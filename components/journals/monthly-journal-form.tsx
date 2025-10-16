@@ -148,7 +148,7 @@ export function MonthlyJournalForm({
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = (await response.json()) as { error?: string };
         throw new Error(error.error || "Gagal menyimpan jurnal");
       }
 
