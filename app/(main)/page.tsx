@@ -1,50 +1,92 @@
 // Dashboard page - Home/Overview
 // Last updated: 2025-10-17
-// Added setup banner check
-// Added EnhancedCard for better interactivity
-// Added Skeleton loading states
+// Added real data from API
+// Added charts and visualizations
+// Added refresh functionality
 
 "use client";
 
-import { BookOpen, MessageSquare, TrendingUp, Users } from "lucide-react";
+import { BookOpen, MessageSquare, TrendingUp, Users, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedCard } from "@/components/ui/enhanced-card";
 import { SkeletonCard } from "@/components/ui/skeleton";
 import { SetupBanner } from "@/components/dashboard/setup-banner";
+import { AssessmentChart } from "@/components/dashboard/assessment-chart";
+import { MeetingsChart } from "@/components/dashboard/meetings-chart";
+import { Button } from "@/components/ui/button";
+
+interface DashboardStats {
+  totalStudents: number;
+  studentsAssessed: number;
+  studentsNotAssessed: number;
+  assessmentPercentage: number;
+  totalMeetings: number;
+  meetingsThisWeek: number;
+  meetingsThisMonth: number;
+}
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
-  const [hasProfile, setHasProfile] = useState(true); // Default true to avoid flash
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasProfile, setHasProfile] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
 
-  // Check if user has completed setup
-  useEffect(() => {
-    async function checkSetup() {
-      try {
-        const response = await fetch("/api/profile/check");
-        if (response.ok) {
-          const data = (await response.json()) as { hasProfile?: boolean };
-          setHasProfile(data.hasProfile ?? true);
-        }
-      } catch (error) {
-        console.error("Error checking setup:", error);
-        // On error, assume has profile to avoid showing banner incorrectly
-        setHasProfile(true);
-      } finally {
-        setIsLoading(false);
+  // Fetch dashboard data
+  const fetchData = async () => {
+    try {
+      setIsRefreshing(true);
+
+      // Fetch setup status and stats in parallel
+      const [profileRes, statsRes] = await Promise.all([
+        fetch("/api/profile/check"),
+        fetch("/api/dashboard/stats"),
+      ]);
+
+      if (profileRes.ok) {
+        const profileData = (await profileRes.json()) as { hasProfile?: boolean };
+        setHasProfile(profileData.hasProfile ?? true);
       }
-    }
 
-    checkSetup();
+      if (statsRes.ok) {
+        const statsData = (await statsRes.json()) as DashboardStats;
+        setStats(statsData);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
+
+  const handleRefresh = () => {
+    fetchData();
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Selamat datang di Guru Wali Digital Companion
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Selamat datang di Guru Wali Digital Companion
+          </p>
+        </div>
+        <Button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Setup Banner - Show if user hasn't completed setup */}
@@ -85,7 +127,7 @@ export default function Home() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">{stats?.totalStudents ?? 0}</div>
                 <p className="text-xs text-muted-foreground">
                   Siswa yang diampu
                 </p>
@@ -95,14 +137,14 @@ export default function Home() {
             <EnhancedCard>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Jurnal Bulan Ini
+                  Siswa Dinilai
                 </CardTitle>
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">{stats?.studentsAssessed ?? 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  Catatan perkembangan
+                  Punya jurnal penilaian
                 </p>
               </CardContent>
             </EnhancedCard>
@@ -115,7 +157,7 @@ export default function Home() {
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">{stats?.meetingsThisWeek ?? 0}</div>
                 <p className="text-xs text-muted-foreground">Log pertemuan</p>
               </CardContent>
             </EnhancedCard>
@@ -123,31 +165,51 @@ export default function Home() {
             <EnhancedCard>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Progress Bulan Ini
+                  Progress Penilaian
                 </CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0%</div>
-                <p className="text-xs text-muted-foreground">Dari target</p>
+                <div className="text-2xl font-bold">{stats?.assessmentPercentage ?? 0}%</div>
+                <p className="text-xs text-muted-foreground">Siswa dinilai</p>
               </CardContent>
             </EnhancedCard>
           </>
         )}
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Aksi Cepat</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Mulai dengan menambahkan data siswa atau membuat jurnal bulanan
-            pertama Anda.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Charts */}
+      {!isLoading && stats && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Assessment Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Status Penilaian Siswa</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AssessmentChart
+                assessed={stats.studentsAssessed}
+                notAssessed={stats.studentsNotAssessed}
+                percentage={stats.assessmentPercentage}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Meetings Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Statistik Pertemuan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MeetingsChart
+                totalMeetings={stats.totalMeetings}
+                meetingsThisWeek={stats.meetingsThisWeek}
+                meetingsThisMonth={stats.meetingsThisMonth}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
