@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     const filename = `Laporan_Semester_${semester}_${tahunAjaran.replace("/", "-")}_${new Date().toISOString().split("T")[0]}.pdf`;
 
     // Return PDF directly (R2 caching removed for MVP simplicity)
-    return new NextResponse(pdfBytes, {
+    return new NextResponse(pdfBytes.buffer as any, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
