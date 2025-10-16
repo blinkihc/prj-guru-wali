@@ -86,35 +86,72 @@ export function generateStudentReportPDF(
   doc.text(`Jenis Kelamin: ${student.gender}`, 20, yPos);
   yPos += 12;
   
-  // === JOURNALS TABLE ===
+  // === LAMPIRAN B: 5 ASPECTS TABLE (Official Format) ===
   if (journals.length > 0) {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("JURNAL BULANAN", 20, yPos);
+    doc.text("CATATAN PERKEMBANGAN (5 ASPEK PEMANTAUAN)", 20, yPos);
     yPos += 5;
+    
+    // Use official Lampiran B structure: 4 columns
+    // 20% Aspek | 35% Deskripsi | 30% Tindak Lanjut | 15% Keterangan
+    const pageWidth = 175; // Available width
     
     autoTable(doc, {
       startY: yPos,
-      head: [["Bulan", "Akademik", "Sosial", "Emosional", "Fisik", "Spiritual"]],
-      body: journals.map(j => [
-        `${j.month} ${j.year}`,
-        j.academicProgress.substring(0, 30) + "...",
-        j.socialBehavior.substring(0, 30) + "...",
-        j.emotionalState.substring(0, 30) + "...",
-        j.physicalHealth.substring(0, 30) + "...",
-        j.spiritualDevelopment.substring(0, 30) + "..."
-      ]),
+      head: [[
+        "Aspek Pemantauan",
+        "Deskripsi Perkembangan",
+        "Tindak Lanjut yang Dilakukan",
+        "Keterangan Tambahan"
+      ]],
+      body: [
+        [
+          "Akademik",
+          journals[0]?.academicProgress || "-",
+          "Konseling dan kunjungan orang tua",
+          ""
+        ],
+        [
+          "Karakter",
+          journals[0]?.socialBehavior || "-",
+          "Menerapkan disiplin positif yang berfokus pada membangun karakter",
+          ""
+        ],
+        [
+          "Sosial-Emosional",
+          journals[0]?.emotionalState || "-",
+          "Membiasakan ucapan seperti 'tolong, permisi dan terima kasih'",
+          ""
+        ],
+        [
+          "Kedisiplinan",
+          journals[0]?.physicalHealth || "-",
+          "Mengucapkan salam, mendengarkan seksama, berprilaku tertib",
+          ""
+        ],
+        [
+          "Potensi & Minat",
+          journals[0]?.spiritualDevelopment || "-",
+          "Pembelajaran interaktif dan menciptakan lingkungan positif",
+          ""
+        ]
+      ],
       theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], fontSize: 9 },
+      headStyles: { 
+        fillColor: [198, 224, 180], // #C6E0B4 (official color)
+        textColor: [0, 0, 0],
+        fontSize: 9,
+        fontStyle: "bold"
+      },
       bodyStyles: { fontSize: 8 },
       columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 30 },
-        5: { cellWidth: 30 }
-      }
+        0: { cellWidth: pageWidth * 0.20 }, // 20%
+        1: { cellWidth: pageWidth * 0.35 }, // 35%
+        2: { cellWidth: pageWidth * 0.30 }, // 30%
+        3: { cellWidth: pageWidth * 0.15 }  // 15%
+      },
+      margin: { left: 20, right: 20 }
     });
     
     yPos = (doc as any).lastAutoTable.finalY + 10;
@@ -259,33 +296,55 @@ export function generateSemesterReportPDF(
   doc.text(`Guru Wali: ${teacherName}`, 20, yPos);
   yPos += 12;
   
-  // === STUDENTS TABLE ===
+  // === LAMPIRAN A: IDENTITAS MURID (Official Format) ===
   if (students.length > 0) {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("DAFTAR SISWA", 20, yPos);
+    doc.text("LAMPIRAN A: FORMAT IDENTITAS MURID DAMPINGAN", 20, yPos);
     yPos += 5;
+    
+    // Use official Lampiran A structure: 7 columns
+    // 5% No | 25% Nama | 15% NISN | 10% Kelas | 15% Gender | 15% Kontak | 15% Catatan
+    const pageWidth = 175;
     
     autoTable(doc, {
       startY: yPos,
-      head: [["No", "NISN", "Nama", "Kelas", "Jenis Kelamin"]],
+      head: [[
+        "No.",
+        "Nama Murid",
+        "NIS/NISN",
+        "Kelas",
+        "Jenis Kelamin",
+        "Kontak Orang Tua",
+        "Catatan Khusus"
+      ]],
       body: students.map((s, idx) => [
-        (idx + 1).toString(),
-        s.nisn,
+        (idx + 1).toString() + ".",
         s.name,
-        s.class,
-        s.gender
+        s.nisn || "-",
+        s.class || "-",
+        s.gender || "-",
+        "-", // Parent contact not in data
+        "-"  // Notes not in data
       ]),
       theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], fontSize: 10 },
-      bodyStyles: { fontSize: 9 },
+      headStyles: { 
+        fillColor: [198, 224, 180], // #C6E0B4 (official color)
+        textColor: [0, 0, 0],
+        fontSize: 9,
+        fontStyle: "bold"
+      },
+      bodyStyles: { fontSize: 8 },
       columnStyles: {
-        0: { cellWidth: 15 },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 60 },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 35 }
-      }
+        0: { cellWidth: pageWidth * 0.05 },  // 5%
+        1: { cellWidth: pageWidth * 0.25 },  // 25%
+        2: { cellWidth: pageWidth * 0.15 },  // 15%
+        3: { cellWidth: pageWidth * 0.10 },  // 10%
+        4: { cellWidth: pageWidth * 0.15 },  // 15%
+        5: { cellWidth: pageWidth * 0.15 },  // 15%
+        6: { cellWidth: pageWidth * 0.15 }   // 15%
+      },
+      margin: { left: 20, right: 20 }
     });
     
     yPos = (doc as any).lastAutoTable.finalY + 15;
