@@ -1,35 +1,61 @@
 // Cloudflare bindings helper
 // Access R2, D1, and other Cloudflare resources
-// Created: 2025-10-15
+// Updated: 2025-10-16
 
 import type { R2Bucket } from "@cloudflare/workers-types";
 
 export interface CloudflareEnv {
-  STORAGE: R2Bucket;
+  STORAGE?: R2Bucket;
   DB?: any; // D1 database
   ENVIRONMENT?: string;
 }
 
 /**
  * Get Cloudflare environment from request context
- * Works with both Edge Runtime and local development
+ * Works with Cloudflare Pages (Next.js) and Edge Runtime
  */
 export function getCloudflareEnv(): CloudflareEnv | null {
-  // In Cloudflare Pages, bindings are in globalThis
-  if (typeof globalThis !== "undefined" && (globalThis as any).STORAGE) {
-    return {
-      STORAGE: (globalThis as any).STORAGE,
-      DB: (globalThis as any).DB,
-      ENVIRONMENT: (globalThis as any).ENVIRONMENT || "development",
-    };
+  try {
+    // Try to get from @cloudflare/next-on-pages
+    // @ts-ignore
+    const { getRequestContext } = require("@cloudflare/next-on-pages");
+    if (typeof getRequestContext === "function") {
+      const ctx = getRequestContext();
+      if (ctx?.env) {
+        console.log("[Cloudflare] Got bindings from getRequestContext");
+        return {
+          STORAGE: ctx.env.STORAGE,
+          DB: ctx.env.DB,
+          ENVIRONMENT: ctx.env.ENVIRONMENT || "production",
+        };
+      }
+    }
+  } catch (e) {
+    // @cloudflare/next-on-pages not available or getRequestContext failed
+    console.log("[Cloudflare] getRequestContext not available, trying globalThis");
   }
 
-  // Fallback for local development (mock)
+  // Fallback: Check globalThis for bindings
+  if (typeof globalThis !== "undefined") {
+    const hasAnyBinding =
+      (globalThis as any).DB ||
+      (globalThis as any).STORAGE ||
+      (globalThis as any).ENVIRONMENT;
+
+    if (hasAnyBinding) {
+      return {
+        STORAGE: (globalThis as any).STORAGE,
+        DB: (globalThis as any).DB,
+        ENVIRONMENT: (globalThis as any).ENVIRONMENT || "production",
+      };
+    }
+  }
+
+  // Local development fallback
   if (process.env.NODE_ENV === "development") {
     console.warn(
-      "[Cloudflare] Running in development mode without R2. PDF caching disabled.",
+      "[Cloudflare] Running in development mode. Cloudflare bindings not available.",
     );
-    return null;
   }
 
   return null;

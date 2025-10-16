@@ -55,8 +55,8 @@ VALUES (
 
 // Example usage - modify these values
 createUser({
-  email: "guru@sekolah.com",
+  email: "aprilia3handayani@gmail.com",
   password: "guru123",
-  fullName: "Ibu Siti Rahayu",
-  nipNuptk: "198405102006042002",
+  fullName: "Aprilia Trihandayani,S.Pd",
+  nipNuptk: "198404032009042001",
 });
