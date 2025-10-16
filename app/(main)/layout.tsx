@@ -33,7 +33,7 @@ export default async function MainLayout({
         const [profile] = await db
           .select()
           .from(schoolProfiles)
-          .where(eq(schoolProfiles.userId, user.id))
+          .where(eq(schoolProfiles.userId, user.userId))
           .limit(1);
 
         // If no profile found, redirect to setup
