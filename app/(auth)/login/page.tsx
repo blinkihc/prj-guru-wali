@@ -40,7 +40,7 @@ function LoginForm() {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as { error?: string; success?: boolean };
 
       if (!response.ok) {
         toast.error(data.error || "Login gagal");
