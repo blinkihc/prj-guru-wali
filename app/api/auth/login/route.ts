@@ -29,8 +29,9 @@ export async function POST(request: NextRequest) {
       // @ts-ignore
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
+      const env = ctx?.env as any;
       
-      if (!ctx?.env?.DB) {
+      if (!env?.DB) {
         console.error("[Login] D1 binding not found in request context");
         return NextResponse.json(
           { error: "Database tidak tersedia" },
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       }
       
       console.log("[Login] Got D1 binding from request context");
-      db = getDb(ctx.env.DB);
+      db = getDb(env.DB);
     } catch (error) {
       console.error("[Login] Error getting request context:", error);
       return NextResponse.json(
