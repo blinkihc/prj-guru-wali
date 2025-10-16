@@ -1,5 +1,6 @@
 // Dashboard page - Home/Overview
-// Last updated: 2025-10-14
+// Last updated: 2025-10-17
+// Added setup banner check
 // Added EnhancedCard for better interactivity
 // Added Skeleton loading states
 
@@ -10,14 +11,31 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedCard } from "@/components/ui/enhanced-card";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import { SetupBanner } from "@/components/dashboard/setup-banner";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
+  const [hasProfile, setHasProfile] = useState(true); // Default true to avoid flash
 
-  // Simulate data loading
+  // Check if user has completed setup
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
+    async function checkSetup() {
+      try {
+        const response = await fetch("/api/profile/check");
+        if (response.ok) {
+          const data = (await response.json()) as { hasProfile?: boolean };
+          setHasProfile(data.hasProfile ?? true);
+        }
+      } catch (error) {
+        console.error("Error checking setup:", error);
+        // On error, assume has profile to avoid showing banner incorrectly
+        setHasProfile(true);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    checkSetup();
   }, []);
 
   return (
@@ -28,6 +46,9 @@ export default function Home() {
           Selamat datang di Guru Wali Digital Companion
         </p>
       </div>
+
+      {/* Setup Banner - Show if user hasn't completed setup */}
+      {!isLoading && !hasProfile && <SetupBanner />}
 
       {/* Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
