@@ -52,3 +52,10 @@ worker-configuration.d.ts
 
 # Documentation (local only)
 /docs/
+
+# Scripts (contains user credentials, local only)
+/scripts/
+
+# SQL files (may contain sensitive data)
+/*.sql
+!schema.sql
