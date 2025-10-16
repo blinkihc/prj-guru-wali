@@ -7,7 +7,6 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { users } from "@/drizzle/schema";
 import { createSession } from "@/lib/auth/session";
-import { getCloudflareEnv } from "@/lib/cloudflare";
 
 export const runtime = "edge";
 
@@ -24,18 +23,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get D1 binding from Cloudflare environment
-    const env = getCloudflareEnv();
-    if (!env?.DB) {
-      console.error("D1 database binding not found");
+    // Get D1 binding directly from Cloudflare Pages context
+    let db: any;
+    try {
+      // @ts-ignore
+      const { getRequestContext } = await import("@cloudflare/next-on-pages");
+      const ctx = getRequestContext();
+      
+      if (!ctx?.env?.DB) {
+        console.error("[Login] D1 binding not found in request context");
+        return NextResponse.json(
+          { error: "Database tidak tersedia" },
+          { status: 503 },
+        );
+      }
+      
+      console.log("[Login] Got D1 binding from request context");
+      db = getDb(ctx.env.DB);
+    } catch (error) {
+      console.error("[Login] Error getting request context:", error);
       return NextResponse.json(
         { error: "Database tidak tersedia" },
         { status: 503 },
       );
     }
-
-    // Get database instance
-    const db = getDb(env.DB);
 
     // Find user by email
     const [user] = await db
