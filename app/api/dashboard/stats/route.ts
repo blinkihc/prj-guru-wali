@@ -60,10 +60,12 @@ export async function GET(request: NextRequest) {
       const totalStudents = allStudents.length;
 
       // 2. Students with journals (assessed)
+      // Need to join with students table to filter by userId
       const studentsWithJournals = await db
         .select({ studentId: monthlyJournals.studentId })
         .from(monthlyJournals)
-        .where(eq(monthlyJournals.userId, session.userId));
+        .innerJoin(students, eq(monthlyJournals.studentId, students.id))
+        .where(eq(students.userId, session.userId));
 
       // Get unique student IDs
       const assessedStudentIds = new Set(
@@ -77,10 +79,15 @@ export async function GET(request: NextRequest) {
           : 0;
 
       // 3. Total meetings
+      // Need to join with students table to filter by userId
       const allMeetings = await db
-        .select()
+        .select({
+          id: meetingLogs.id,
+          meetingDate: meetingLogs.meetingDate,
+        })
         .from(meetingLogs)
-        .where(eq(meetingLogs.userId, session.userId));
+        .innerJoin(students, eq(meetingLogs.studentId, students.id))
+        .where(eq(students.userId, session.userId));
 
       const totalMeetings = allMeetings.length;
 
