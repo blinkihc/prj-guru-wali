@@ -84,7 +84,7 @@ export default function SetupPage() {
         body: JSON.stringify(wizardData),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as { error?: string; success?: boolean };
 
       if (!response.ok) {
         toast.error(data.error || "Gagal menyimpan data");
