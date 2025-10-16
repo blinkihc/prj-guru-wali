@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as any;
     const { semester, tahunAjaran, periodeStart, periodeEnd } = body;
 
     if (!semester || !tahunAjaran || !periodeStart || !periodeEnd) {

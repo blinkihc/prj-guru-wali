@@ -67,20 +67,20 @@ export default function StudentDetailPage({ params }: PageProps) {
         if (!studentRes.ok) {
           throw new Error("Student not found");
         }
-        const studentData = await studentRes.json();
+        const studentData = (await studentRes.json()) as { student?: any };
         setStudent(studentData.student);
 
         // Fetch journals
         const journalsRes = await fetch(`/api/journals?studentId=${studentId}`);
         if (journalsRes.ok) {
-          const journalsData = await journalsRes.json();
+          const journalsData = (await journalsRes.json()) as { journals?: any[] };
           setJournals(journalsData.journals || []);
         }
 
         // Fetch meetings
         const meetingsRes = await fetch(`/api/meetings?studentId=${studentId}`);
         if (meetingsRes.ok) {
-          const meetingsData = await meetingsRes.json();
+          const meetingsData = (await meetingsRes.json()) as { meetings?: any[] };
           setMeetings(meetingsData.meetings || []);
         }
 
@@ -89,7 +89,7 @@ export default function StudentDetailPage({ params }: PageProps) {
           `/api/interventions?studentId=${studentId}`,
         );
         if (interventionsRes.ok) {
-          const interventionsData = await interventionsRes.json();
+          const interventionsData = (await interventionsRes.json()) as { interventions?: any[] };
           setInterventions(interventionsData.interventions || []);
         }
       } catch (err) {

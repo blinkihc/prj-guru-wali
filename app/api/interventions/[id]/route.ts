@@ -77,7 +77,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await request.json();
+    const body = (await request.json()) as any;
 
     // Find intervention in mock data
     const interventionIndex = mockInterventions.findIndex((i) => i.id === id);

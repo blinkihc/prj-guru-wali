@@ -74,7 +74,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = await request.json();
+    const body = (await request.json()) as any;
 
     // Validate fullName if provided
     if (body.fullName && typeof body.fullName !== "string") {

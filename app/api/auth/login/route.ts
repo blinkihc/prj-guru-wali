@@ -12,7 +12,7 @@ export const runtime = "edge";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as { email?: string; password?: string };
     const { email, password } = body;
 
     // Validate input
