@@ -1,6 +1,8 @@
 // Main layout with AppShell
 // Last updated: 2025-10-17
+// Added auth protection
 
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout";
 import { getCurrentUser } from "@/lib/auth/session";
 
@@ -15,5 +17,10 @@ export default async function MainLayout({
 }) {
   const user = await getCurrentUser();
 
-  return <AppShell user={user || undefined}>{children}</AppShell>;
+  // Protect all routes in (main) group - redirect to login if not authenticated
+  if (!user) {
+    redirect("/login");
+  }
+
+  return <AppShell user={user}>{children}</AppShell>;
 }
