@@ -10,6 +10,15 @@ import { students, monthlyJournals, meetingLogs } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
 import { generateSemesterReportPDF } from "@/lib/services/pdf-generator-edge";
 
+// Import dummy data for local testing (file is in .gitignore)
+let dummyData: any = null;
+try {
+  dummyData = require("@/lib/testing/dummy-data");
+} catch (e) {
+  // Dummy data not available (production or file doesn't exist)
+  dummyData = null;
+}
+
 export const runtime = "edge";
 
 interface StudentJournalEntry {
@@ -53,8 +62,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get D1 binding (with fallback for local dev)
+    // Get D1 binding (with fallback for local dev with dummy data)
     let db;
+    let allStudents: any[] = [];
+    let allJournals: any[] = [];
+    
     try {
       // @ts-ignore
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
@@ -62,39 +74,52 @@ export async function POST(request: NextRequest) {
       const env = ctx?.env as any;
 
       if (!env?.DB) {
-        // Local dev fallback - return error
-        console.warn("[SemesterReport] Running in local dev mode");
+        // Local dev fallback - use dummy data if available
+        if (dummyData) {
+          console.warn("[SemesterReport] Running in local dev mode with DUMMY DATA");
+          allStudents = dummyData.dummyStudents;
+          allJournals = dummyData.dummyJournals;
+        } else {
+          console.warn("[SemesterReport] No database and no dummy data available");
+          return NextResponse.json(
+            { error: "Database not available in local dev" },
+            { status: 503 },
+          );
+        }
+      } else {
+        // Production: Fetch real data from database
+        db = getDb(env.DB);
+        
+        allStudents = await db
+          .select()
+          .from(students)
+          .where(eq(students.userId, session.userId));
+
+        // Fetch journals for all students
+        const studentIds = allStudents.map((s) => s.id);
+        allJournals = studentIds.length > 0
+          ? await db
+              .select()
+              .from(monthlyJournals)
+              .where(
+                sql`${monthlyJournals.studentId} IN (${sql.join(studentIds.map((id) => sql`${id}`), sql`, `)})`
+              )
+          : [];
+      }
+    } catch (error) {
+      // Cloudflare context not available - use dummy data if available
+      if (dummyData) {
+        console.warn("[SemesterReport] Cloudflare context not available, using DUMMY DATA");
+        allStudents = dummyData.dummyStudents;
+        allJournals = dummyData.dummyJournals;
+      } else {
+        console.warn("[SemesterReport] Cloudflare context not available and no dummy data");
         return NextResponse.json(
-          { error: "Database not available in local dev" },
+          { error: "Database not available" },
           { status: 503 },
         );
       }
-
-      db = getDb(env.DB);
-    } catch (error) {
-      console.warn("[SemesterReport] Cloudflare context not available");
-      return NextResponse.json(
-        { error: "Database not available" },
-        { status: 503 },
-      );
     }
-
-    // Fetch real data from database
-    const allStudents = await db
-      .select()
-      .from(students)
-      .where(eq(students.userId, session.userId));
-
-    // Fetch journals for all students (JOIN not needed, filter by studentId)
-    const studentIds = allStudents.map((s) => s.id);
-    const allJournals = studentIds.length > 0
-      ? await db
-          .select()
-          .from(monthlyJournals)
-          .where(
-            sql`${monthlyJournals.studentId} IN (${sql.join(studentIds.map((id) => sql`${id}`), sql`, `)})`
-          )
-      : [];
 
     // Transform journals to per-student format for Lampiran B
     const studentJournals: StudentJournalEntry[] = allStudents.map((student) => {
@@ -127,7 +152,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Transform meetings to summary format for Lampiran D
-    const meetingSummary: MeetingSummaryEntry[] = [
+    const meetingSummary: MeetingSummaryEntry[] = dummyData?.dummyMeetingSummary || [
       { bulan: "Agustus", jumlah: 1, format: "Kelompok", persentase: "1%" },
       { bulan: "September", jumlah: 2, format: "Kelompok", persentase: "2%" },
     ];
