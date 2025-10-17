@@ -369,11 +369,8 @@ export function generateSemesterReportPDF(
     addLampiranC(doc, meetingRecords);
   }
   
-  // 6. Lampiran D - Pelaporan Semester
+  // 6. Lampiran D - Pelaporan Semester (with signature at the end)
   addLampiranD(doc, teacherName, students, semester, academicYear, meetingSummary);
-  
-  // 7. Signature Page
-  addSignaturePage(doc, teacherName);
   
   // Return as Uint8Array
   const pdfOutput = doc.output("arraybuffer");
@@ -443,117 +440,117 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   
   // I. Dasar Hukum
   doc.setFont("times", "bold");
-  doc.text("I. Dasar Hukum", 20, yPos);
+  doc.text("I. Dasar Hukum", leftMargin, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("1. Permendikdasmen No. 11 Tahun 2025 tentang Pemenuhan Beban Kerja", 25, yPos);
+  doc.text("1. Permendikdasmen No. 11 Tahun 2025 tentang Pemenuhan Beban Kerja", indent, yPos);
   yPos += 5;
-  doc.text("   Guru", 25, yPos);
+  doc.text("   Guru", indent, yPos);
   yPos += 6;
-  doc.text("2. Pasal 9 ayat (1-5): Kewajiban dan ruang lingkup tugas Guru Wali", 25, yPos);
+  doc.text("2. Pasal 9 ayat (1-5): Kewajiban dan ruang lingkup tugas Guru Wali", indent, yPos);
   yPos += 6;
-  doc.text("3. Pasal 14: Ekuivalensi tugas Guru Wali setara 2 JP per minggu", 25, yPos);
+  doc.text("3. Pasal 14: Ekuivalensi tugas Guru Wali setara 2 JP per minggu", indent, yPos);
   yPos += 6;
-  doc.text("4. Pasal 17 dan 18: Penetapan, pelaksanaan, dan penghitungan beban", 25, yPos);
+  doc.text("4. Pasal 17 dan 18: Penetapan, pelaksanaan, dan penghitungan beban", indent, yPos);
   yPos += 5;
-  doc.text("   kerja", 25, yPos);
+  doc.text("   kerja", indent, yPos);
   yPos += 10;
   
   // II. Pengertian
   doc.setFont("times", "bold");
-  doc.text("II. Pengertian", 20, yPos);
+  doc.text("II. Pengertian", leftMargin, yPos);
   yPos += 6;
   doc.setFont("times", "bold");
   const pengertiText1 = "Guru Wali";
-  doc.text(pengertiText1, 20, yPos);
+  doc.text(pengertiText1, leftMargin, yPos);
   const w1 = doc.getTextWidth(pengertiText1);
   doc.setFont("times", "normal");
-  doc.text(" adalah guru mata pelajaran yang diberi tugas mendampingi", 20 + w1, yPos);
+  doc.text(" adalah guru mata pelajaran yang diberi tugas mendampingi", leftMargin + w1, yPos);
   yPos += 6;
-  doc.text("perkembangan akademik, karakter, keterampilan, dan kompetensi murid dari saat", 20, yPos);
+  doc.text("perkembangan akademik, karakter, keterampilan, dan kompetensi murid dari saat", leftMargin, yPos);
   yPos += 6;
-  doc.text("masuk hingga lulus pada satuan pendidikan yang sama.", 20, yPos);
+  doc.text("masuk hingga lulus pada satuan pendidikan yang sama.", leftMargin, yPos);
   yPos += 10;
   
   // III. Tujuan
   doc.setFont("times", "bold");
-  doc.text("III. Tujuan", 20, yPos);
+  doc.text("III. Tujuan", leftMargin, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("Adapun tujuan guru wali yaitu :", 20, yPos);
+  doc.text("Adapun tujuan guru wali yaitu :", leftMargin, yPos);
   yPos += 6;
-  doc.text("\u2022 Menjamin pelaksanaan pendampingan murid secara menyeluruh dan", 25, yPos);
+  doc.text("\u2022 Menjamin pelaksanaan pendampingan murid secara menyeluruh dan", indent, yPos);
   yPos += 5;
-  doc.text("  berkesinambungan.", 25, yPos);
+  doc.text("  berkesinambungan.", indent, yPos);
   yPos += 6;
-  doc.text("\u2022 Meningkatkan keterlibatan guru dalam pendidikan karakter dan", 25, yPos);
+  doc.text("\u2022 Meningkatkan keterlibatan guru dalam pendidikan karakter dan", indent, yPos);
   yPos += 5;
-  doc.text("  pengembangan potensi murid.", 25, yPos);
+  doc.text("  pengembangan potensi murid.", indent, yPos);
   yPos += 6;
-  doc.text("\u2022 Memberikan dukungan sistematis terhadap pertumbuhan akademik dan", 25, yPos);
+  doc.text("\u2022 Memberikan dukungan sistematis terhadap pertumbuhan akademik dan", indent, yPos);
   yPos += 5;
-  doc.text("  non-akademik peserta didik.", 25, yPos);
+  doc.text("  non-akademik peserta didik.", indent, yPos);
   yPos += 10;
   
   // IV. Ruang Lingkup Tugas
   doc.setFont("times", "bold");
-  doc.text("IV. Ruang Lingkup Tugas", 20, yPos);
+  doc.text("IV. Ruang Lingkup Tugas", leftMargin, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("Berdasarkan Pasal 9 ayat (2), Guru Wali melaksanakan tugas sebagai berikut:", 20, yPos);
+  doc.text("Berdasarkan Pasal 9 ayat (2), Guru Wali melaksanakan tugas sebagai berikut:", leftMargin, yPos);
   yPos += 8;
   
   doc.setFont("times", "bold");
-  doc.text("1. Pendampingan Akademik", 25, yPos);
+  doc.text("1. Pendampingan Akademik", indent, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("Membantu murid dalam perencanaan dan refleksi belajar.", 20, yPos);
+  doc.text("Membantu murid dalam perencanaan dan refleksi belajar.", leftMargin, yPos);
   yPos += 8;
   
   doc.setFont("times", "bold");
-  doc.text("2. Pengembangan Kompetensi dan Keterampilan", 25, yPos);
+  doc.text("2. Pengembangan Kompetensi dan Keterampilan", indent, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("Mendorong minat bakat serta pengembangan soft skills.", 20, yPos);
+  doc.text("Mendorong minat bakat serta pengembangan soft skills.", leftMargin, yPos);
   yPos += 8;
   
   doc.setFont("times", "bold");
-  doc.text("3. Pembinaan Karakter", 25, yPos);
+  doc.text("3. Pembinaan Karakter", indent, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("Menanamkan nilai kedisiplinan, kejujuran, tanggung jawab, dan empati.", 20, yPos);
+  doc.text("Menanamkan nilai kedisiplinan, kejujuran, tanggung jawab, dan empati.", leftMargin, yPos);
   yPos += 8;
   
   doc.setFont("times", "bold");
-  doc.text("4. Pendampingan Berkelanjutan", 25, yPos);
+  doc.text("4. Pendampingan Berkelanjutan", indent, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("Menjadi pendamping murid dari awal hingga akhir masa belajar.", 20, yPos);
+  doc.text("Menjadi pendamping murid dari awal hingga akhir masa belajar.", leftMargin, yPos);
   yPos += 10;
   
   // V. Prosedur Pelaksanaan
   doc.setFont("times", "bold");
-  doc.text("V. Prosedur Pelaksanaan", 20, yPos);
+  doc.text("V. Prosedur Pelaksanaan", leftMargin, yPos);
   yPos += 8;
   
-  doc.text("1. Penunjukan Guru Wali", 20, yPos);
+  doc.text("1. Penunjukan Guru Wali", leftMargin, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("\u2022 Dilakukan oleh Kepala Sekolah (Pasal 18 ayat 1).", 25, yPos);
+  doc.text("\u2022 Dilakukan oleh Kepala Sekolah (Pasal 18 ayat 1).", indent, yPos);
   yPos += 6;
-  doc.text("\u2022 Berdasarkan rasio jumlah murid dengan jumlah guru mata pelajaran", 25, yPos);
+  doc.text("\u2022 Berdasarkan rasio jumlah murid dengan jumlah guru mata pelajaran", indent, yPos);
   yPos += 5;
-  doc.text("  (Pasal 18 ayat 2).", 25, yPos);
+  doc.text("  (Pasal 18 ayat 2).", indent, yPos);
   
   // ==========================================
   // PAGE 2: Prosedur Pelaksanaan (Table)
   // ==========================================
   doc.addPage();
   addDecorativeCorners(doc); // Add decorative corners
-  yPos = 30;
+  yPos = MARGINS.top;
   
   doc.setFont("times", "bold");
-  doc.text("2. Pelaksanaan Tugas", 20, yPos);
+  doc.text("2. Pelaksanaan Tugas", leftMargin, yPos);
   yPos += 8;
   
   // Table for Kegiatan
@@ -590,48 +587,48 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   
   // VI. Evaluasi dan Pelaporan
   doc.setFont("times", "bold");
-  doc.text("VI. Evaluasi dan Pelaporan", 20, yPos);
+  doc.text("VI. Evaluasi dan Pelaporan", leftMargin, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("\u2022 Guru Wali menyusun laporan singkat setiap semester berisi:", 25, yPos);
+  doc.text("\u2022 Guru Wali menyusun laporan singkat setiap semester berisi:", indent, yPos);
   yPos += 6;
-  doc.text("o Rekap pertemuan dan kegiatan", 35, yPos);
+  doc.text("o Rekap pertemuan dan kegiatan", indent + 15, yPos);
   yPos += 6;
-  doc.text("o Catatan perkembangan murid", 35, yPos);
+  doc.text("o Catatan perkembangan murid", indent + 15, yPos);
   yPos += 6;
-  doc.text("o Rekomendasi tindak lanjut", 35, yPos);
+  doc.text("o Rekomendasi tindak lanjut", indent + 15, yPos);
   yPos += 6;
-  doc.text("\u2022 Laporan dikumpulkan ke Wakil Kepala Sekolah bidang Kesiswaan atau", 25, yPos);
+  doc.text("\u2022 Laporan dikumpulkan ke Wakil Kepala Sekolah bidang Kesiswaan atau", indent, yPos);
   yPos += 5;
-  doc.text("  Kurikulum.", 25, yPos);
+  doc.text("  Kurikulum.", indent, yPos);
   yPos += 10;
   
   // VII. Ekuivalensi Beban Kerja
   doc.setFont("times", "bold");
-  doc.text("VII. Ekuivalensi Beban Kerja", 20, yPos);
+  doc.text("VII. Ekuivalensi Beban Kerja", leftMargin, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
   const ekvText1 = "\u2022 Tugas Guru Wali ";
-  doc.text(ekvText1, 25, yPos);
+  doc.text(ekvText1, indent, yPos);
   const w2 = doc.getTextWidth(ekvText1);
   doc.setFont("times", "bold");
   const ekvText2 = "setara dengan 2 jam Tatap Muka per minggu";
-  doc.text(ekvText2, 25 + w2, yPos);
+  doc.text(ekvText2, indent + w2, yPos);
   yPos += 5;
   doc.setFont("times", "normal");
-  doc.text("  (Pasal 14 dan Lampiran Permendikdasmen No. 11 Tahun 2025)", 25, yPos);
+  doc.text("  (Pasal 14 dan Lampiran Permendikdasmen No. 11 Tahun 2025)", indent, yPos);
   yPos += 10;
   
   // VIII. Penutup
   doc.setFont("times", "bold");
-  doc.text("VIII. Penutup", 20, yPos);
+  doc.text("VIII. Penutup", leftMargin, yPos);
   yPos += 6;
   doc.setFont("times", "normal");
-  doc.text("SOP ini menjadi acuan pelaksanaan tugas Guru Wali untuk memastikan", 20, yPos);
+  doc.text("SOP ini menjadi acuan pelaksanaan tugas Guru Wali untuk memastikan", leftMargin, yPos);
   yPos += 6;
-  doc.text("pendampingan murid berjalan sistematis, profesional, dan berdampak pada", 20, yPos);
+  doc.text("pendampingan murid berjalan sistematis, profesional, dan berdampak pada", leftMargin, yPos);
   yPos += 6;
-  doc.text("perkembangan peserta didik secara utuh.", 20, yPos);
+  doc.text("perkembangan peserta didik secara utuh.", leftMargin, yPos);
 }
 
 // ==========================================
@@ -639,12 +636,14 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
 // ==========================================
 
 /**
- * Helper: Check if we need a new page
+ * Helper: Check for page break and add new page if needed
+ * Decorative corners added to all new pages (not cover)
  */
 function checkPageBreak(doc: jsPDF, currentY: number, requiredSpace: number): number {
   const maxY = PAPER.LEGAL.height - MARGINS.bottom;
   if (currentY + requiredSpace > maxY) {
     doc.addPage();
+    addDecorativeCorners(doc); // Add corners to new page
     return MARGINS.top;
   }
   return currentY;
@@ -678,7 +677,7 @@ function addSemesterCoverPage(
   schoolName: string,
   totalStudents: number
 ): void {
-  addDecorativeCorners(doc); // Add decorative corners to cover
+  // NO decorative corners on cover page (page 1 only)
   
   let yPos = PAPER.LEGAL.height / 2 - 60; // Center vertically
   const centerX = PAPER.LEGAL.width / 2;
@@ -717,6 +716,7 @@ function addSemesterCoverPage(
  */
 function addLampiranA(doc: jsPDF, students: StudentData[]): void {
   doc.addPage();
+  addDecorativeCorners(doc);
   let yPos = MARGINS.top;
   const centerX = PAPER.LEGAL.width / 2;
   
@@ -767,6 +767,7 @@ function addLampiranB(doc: jsPDF, journals: StudentJournalEntry[]): void {
   
   journals.forEach((journal, idx) => {
     doc.addPage();
+    addDecorativeCorners(doc);
     let yPos = MARGINS.top;
     const centerX = PAPER.LEGAL.width / 2;
     
@@ -848,6 +849,7 @@ function addLampiranC(doc: jsPDF, meetingRecords: MeetingRecordEntry[]): void {
   if (!meetingRecords || meetingRecords.length === 0) return;
   
   doc.addPage();
+  addDecorativeCorners(doc);
   let yPos = MARGINS.top;
   const centerX = PAPER.LEGAL.width / 2;
   
@@ -916,6 +918,7 @@ function addLampiranD(
   meetingSummary?: MeetingSummaryEntry[]
 ): void {
   doc.addPage();
+  addDecorativeCorners(doc);
   let yPos = MARGINS.top;
   const centerX = PAPER.LEGAL.width / 2;
   
@@ -1036,20 +1039,14 @@ function addLampiranD(
     doc.text(recLines, MARGINS.left, yPos);
     yPos += (recLines.length * FONTS.body * LINE_SPACING);
   });
-}
-
-/**
- * MODULAR SECTION 6: Add Signature Page
- * Simple format (as per reference): Nama, Tanda Tangan, Tanggal
- */
-function addSignaturePage(doc: jsPDF, teacherName: string): void {
-  doc.addPage();
-  let yPos = PAPER.LEGAL.height - MARGINS.bottom - 120;
+  
+  // Add signature section (1 line space, then signature fields)
+  yPos += FONTS.body * LINE_SPACING; // 1 blank line
+  yPos = checkPageBreak(doc, yPos, 80); // Ensure space for signature
   
   doc.setFontSize(FONTS.body);
   doc.setFont("times", "normal");
   
-  // Simple signature format
   doc.text("Nama", MARGINS.left, yPos);
   doc.text(": .............................................................................................​", MARGINS.left + 100, yPos);
   yPos += FONTS.body * LINE_SPACING * 2;
@@ -1061,3 +1058,5 @@ function addSignaturePage(doc: jsPDF, teacherName: string): void {
   doc.text("Tanggal", MARGINS.left, yPos);
   doc.text(": .............................................................................................​", MARGINS.left + 100, yPos);
 }
+
+// NOTE: Signature section removed - now integrated at end of Lampiran D
