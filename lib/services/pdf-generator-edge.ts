@@ -381,6 +381,33 @@ export function generateSemesterReportPDF(
 }
 
 /**
+ * HELPER: Add decorative geometric corners to page
+ * Upper left and bottom right corners with simple shapes
+ */
+function addDecorativeCorners(doc: jsPDF): void {
+  const cornerSize = 40;
+  const color = COLORS.tableHeader; // Use same green as tables [198, 224, 180]
+  
+  // Upper left corner - L-shape
+  doc.setFillColor(color[0], color[1], color[2]);
+  doc.setDrawColor(color[0] - 20, color[1] - 20, color[2] - 20);
+  
+  // Horizontal bar (top)
+  doc.roundedRect(0, 0, cornerSize * 2, 8, 2, 2, 'FD');
+  // Vertical bar (left)
+  doc.roundedRect(0, 0, 8, cornerSize * 2, 2, 2, 'FD');
+  
+  // Bottom right corner - L-shape
+  const pageWidth = PAPER.LEGAL.width;
+  const pageHeight = PAPER.LEGAL.height;
+  
+  // Horizontal bar (bottom)
+  doc.roundedRect(pageWidth - cornerSize * 2, pageHeight - 8, cornerSize * 2, 8, 2, 2, 'FD');
+  // Vertical bar (right)
+  doc.roundedRect(pageWidth - 8, pageHeight - cornerSize * 2, 8, cornerSize * 2, 2, 2, 'FD');
+}
+
+/**
  * Add SOP Pages (3 pages) - EXACT content from sop-pages.tsx template
  * Based on Permendikdasmen No. 11 Tahun 2025
  * 
@@ -393,6 +420,8 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   // PAGE 1: SOP GURU WALI - Dasar Hukum & Ruang Lingkup
   // ==========================================
   doc.addPage();
+  addDecorativeCorners(doc); // Add decorative corners
+  
   let yPos = MARGINS.top;
   const centerX = PAPER.LEGAL.width / 2;
   const leftMargin = MARGINS.left;
@@ -520,6 +549,7 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   // PAGE 2: Prosedur Pelaksanaan (Table)
   // ==========================================
   doc.addPage();
+  addDecorativeCorners(doc); // Add decorative corners
   yPos = 30;
   
   doc.setFont("times", "bold");
@@ -648,6 +678,8 @@ function addSemesterCoverPage(
   schoolName: string,
   totalStudents: number
 ): void {
+  addDecorativeCorners(doc); // Add decorative corners to cover
+  
   let yPos = PAPER.LEGAL.height / 2 - 60; // Center vertically
   const centerX = PAPER.LEGAL.width / 2;
   
