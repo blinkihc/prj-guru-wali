@@ -8,7 +8,12 @@ import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { students, monthlyJournals, meetingLogs } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
-import { generateSemesterReportPDF } from "@/lib/services/pdf-generator-edge";
+import { 
+  generateSemesterReportPDF,
+  type MeetingRecordEntry,
+  type MeetingSummaryEntry,
+  type StudentJournalEntry
+} from "@/lib/services/pdf-generator-edge";
 
 // Import dummy data for local testing (file is in .gitignore)
 let dummyData: any = null;
@@ -20,30 +25,6 @@ try {
 }
 
 export const runtime = "edge";
-
-interface StudentJournalEntry {
-  studentName: string;
-  classroom: string;
-  periode: string;
-  guruWali: string;
-  academicDesc: string;
-  academicAction: string;
-  characterDesc: string;
-  characterAction: string;
-  socialEmotionalDesc: string;
-  socialEmotionalAction: string;
-  disciplineDesc: string;
-  disciplineAction: string;
-  potentialInterestDesc: string;
-  potentialInterestAction: string;
-}
-
-interface MeetingSummaryEntry {
-  bulan: string;
-  jumlah: number;
-  format: string;
-  persentase: string;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -151,7 +132,20 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Transform meetings to summary format for Lampiran D
+    // Generate dummy meeting records for Lampiran C (individual meetings)
+    const meetingRecords: MeetingRecordEntry[] = allStudents.slice(0, 5).map((student, idx) => ({
+      tanggal: `${15 + idx}/08/2024`,
+      namaMurid: student.fullName,
+      topikMasalah: idx % 2 === 0 
+        ? "Perkembangan akademik dan motivasi belajar" 
+        : "Adaptasi sosial dan kedisiplinan",
+      tindakLanjut: idx % 2 === 0 
+        ? "Konseling individual, koordinasi dengan orang tua" 
+        : "Pendampingan berkelanjutan, monitoring perilaku",
+      keterangan: "Baik"
+    }));
+
+    // Transform meetings to summary format for Lampiran D (monthly aggregation)
     const meetingSummary: MeetingSummaryEntry[] = dummyData?.dummyMeetingSummary || [
       { bulan: "Agustus", jumlah: 1, format: "Kelompok", persentase: "1%" },
       { bulan: "September", jumlah: 2, format: "Kelompok", persentase: "2%" },
@@ -170,8 +164,9 @@ export async function POST(request: NextRequest) {
       "SMP Negeri 1",
       semester,
       tahunAjaran,
-      studentJournals, // Lampiran B data
-      meetingSummary   // Lampiran D data
+      studentJournals,  // Lampiran B data
+      meetingRecords,   // Lampiran C data (NEW!)
+      meetingSummary    // Lampiran D data
     );
 
     const filename = `Laporan_Semester_${semester}_${tahunAjaran.replace("/", "-")}_${new Date().toISOString().split("T")[0]}.pdf`;

@@ -43,7 +43,7 @@ interface Intervention {
 }
 
 // Lampiran B: Per-student journal entry
-interface StudentJournalEntry {
+export interface StudentJournalEntry {
   studentName: string;
   classroom: string;
   periode: string;
@@ -60,8 +60,17 @@ interface StudentJournalEntry {
   potentialInterestAction: string;
 }
 
-// Lampiran D: Meeting summary entry
-interface MeetingSummaryEntry {
+// Lampiran C: Individual meeting record entry
+export interface MeetingRecordEntry {
+  tanggal: string;           // Date of meeting
+  namaMurid: string;         // Student name
+  topikMasalah: string;      // Topic/issue discussed
+  tindakLanjut: string;      // Follow-up action
+  keterangan: string;        // Notes/remarks
+}
+
+// Lampiran D: Meeting summary entry (monthly aggregation)
+export interface MeetingSummaryEntry {
   bulan: string;
   jumlah: number;
   format: string;
@@ -76,18 +85,18 @@ const PAPER = {
 };
 
 const MARGINS = {
-  left: 4 * 28.35,   // 4 cm
-  right: 3 * 28.35,  // 3 cm  
-  top: 4 * 28.35,    // 4 cm
-  bottom: 3 * 28.35  // 3 cm
+  left: 2 * 28.35,   // 4 cm
+  right: 1.5 * 28.35,  // 3 cm  
+  top: 2 * 28.35,    // 4 cm
+  bottom: 1.5 * 28.35  // 3 cm
 };
 
 const FONTS = {
-  cover: 14,       // Cover/Judul utama
-  heading: 14,     // Heading bab
-  subheading: 12,  // Heading subbab
+  cover: 20,       // Cover/Judul utama
+  heading: 16,     // Heading bab
+  subheading: 14,  // Heading subbab
   body: 12,        // Body text
-  table: 10        // Table content
+  table: 12        // Table content
 };
 
 const COLORS = {
@@ -327,7 +336,8 @@ export function generateSemesterReportPDF(
   semester: string,
   academicYear: string,
   studentJournals?: StudentJournalEntry[],
-  meetingSummary?: MeetingSummaryEntry[]
+  meetingRecords?: MeetingRecordEntry[],      // Lampiran C: Individual meetings
+  meetingSummary?: MeetingSummaryEntry[]      // Lampiran D: Monthly summary
 ): Uint8Array {
   // Initialize with Legal paper size
   const doc = new jsPDF({
@@ -354,9 +364,9 @@ export function generateSemesterReportPDF(
     addLampiranB(doc, studentJournals);
   }
   
-  // 5. Lampiran C - Meeting Summary
-  if (meetingSummary && meetingSummary.length > 0) {
-    addLampiranC(doc, meetingSummary);
+  // 5. Lampiran C - Individual Meeting Records
+  if (meetingRecords && meetingRecords.length > 0) {
+    addLampiranC(doc, meetingRecords);
   }
   
   // 6. Lampiran D - Pelaporan Semester
@@ -373,27 +383,34 @@ export function generateSemesterReportPDF(
 /**
  * Add SOP Pages (3 pages) - EXACT content from sop-pages.tsx template
  * Based on Permendikdasmen No. 11 Tahun 2025
+ * 
+ * TODO: Full refactor needed - replace ALL hardcoded positions (20, 25, etc)
+ * with leftMargin and indent variables throughout (~600 lines)
+ * Current fix: Top margin and header positioning corrected
  */
 function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   // ==========================================
   // PAGE 1: SOP GURU WALI - Dasar Hukum & Ruang Lingkup
   // ==========================================
   doc.addPage();
-  let yPos = 30;
+  let yPos = MARGINS.top;
+  const centerX = PAPER.LEGAL.width / 2;
+  const leftMargin = MARGINS.left;
+  const indent = leftMargin + 15;
   
-  doc.setFontSize(14);
+  doc.setFontSize(FONTS.heading);
   doc.setFont("times", "bold");
-  doc.text("STANDAR OPERASIONAL PROSEDUR (SOP)", 105, yPos, { align: "center" });
-  yPos += 7;
-  doc.text("GURU WALI", 105, yPos, { align: "center" });
-  yPos += 10;
+  doc.text("STANDAR OPERASIONAL PROSEDUR (SOP)", centerX, yPos, { align: "center" });
+  yPos += FONTS.heading * 1.2;
+  doc.text("GURU WALI", centerX, yPos, { align: "center" });
+  yPos += FONTS.body * 2;
   
-  doc.setFontSize(12);
+  doc.setFontSize(FONTS.body);
   doc.setFont("times", "normal");
-  doc.text(`Satuan Pendidikan: ${schoolName}`, 20, yPos);
-  yPos += 6;
-  doc.text(`Tahun Ajaran: ${tahunAjaran}`, 20, yPos);
-  yPos += 12;
+  doc.text(`Satuan Pendidikan: ${schoolName}`, leftMargin, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  doc.text(`Tahun Ajaran: ${tahunAjaran}`, leftMargin, yPos);
+  yPos += FONTS.body * 2;
   
   // I. Dasar Hukum
   doc.setFont("times", "bold");
@@ -711,24 +728,27 @@ function addLampiranA(doc: jsPDF, students: StudentData[]): void {
 
 /**
  * MODULAR SECTION 3: Add Lampiran B (Per-Student Journals)
+ * Note: "LAMPIRAN B" header only shows on FIRST page (as per reference)
  */
 function addLampiranB(doc: jsPDF, journals: StudentJournalEntry[]): void {
   if (!journals || journals.length === 0) return;
   
-  journals.forEach((journal) => {
+  journals.forEach((journal, idx) => {
     doc.addPage();
     let yPos = MARGINS.top;
     const centerX = PAPER.LEGAL.width / 2;
     
-    // Title - 14pt bold
-    doc.setFontSize(FONTS.heading);
-    doc.setFont("times", "bold");
-    doc.text("LAMPIRAN B", centerX, yPos, { align: "center" });
-    yPos += FONTS.heading * 1.2;
-    
-    doc.setFontSize(FONTS.subheading);
-    doc.text("FORMAT CATATAN PERKEMBANGAN MURID", centerX, yPos, { align: "center" });
-    yPos += FONTS.subheading * 2;
+    // Title - ONLY ON FIRST PAGE (idx === 0)
+    if (idx === 0) {
+      doc.setFontSize(FONTS.heading);
+      doc.setFont("times", "bold");
+      doc.text("LAMPIRAN B", centerX, yPos, { align: "center" });
+      yPos += FONTS.heading * 1.2;
+      
+      doc.setFontSize(FONTS.subheading);
+      doc.text("FORMAT CATATAN PERKEMBANGAN MURID", centerX, yPos, { align: "center" });
+      yPos += FONTS.subheading * 2;
+    }
     
     // Student Info - with proper spacing
     doc.setFontSize(FONTS.body);
@@ -789,74 +809,67 @@ function addLampiranB(doc: jsPDF, journals: StudentJournalEntry[]): void {
 }
 
 /**
- * MODULAR SECTION 4: Add Lampiran C (Meeting Summary)
+ * MODULAR SECTION 4: Add Lampiran C (Individual Meeting Records)
+ * Format from reference: Individual meeting log with date, student, topic, action, notes
  */
-function addLampiranC(doc: jsPDF, meetingSummary: MeetingSummaryEntry[]): void {
-  if (!meetingSummary || meetingSummary.length === 0) return;
+function addLampiranC(doc: jsPDF, meetingRecords: MeetingRecordEntry[]): void {
+  if (!meetingRecords || meetingRecords.length === 0) return;
   
   doc.addPage();
   let yPos = MARGINS.top;
   const centerX = PAPER.LEGAL.width / 2;
   
-  // Title - 14pt bold
+  // Title - 16pt bold
   doc.setFontSize(FONTS.heading);
   doc.setFont("times", "bold");
-  doc.text("LAMPIRAN C: REKAPITULASI KEGIATAN PERTEMUAN", centerX, yPos, { align: "center" });
+  doc.text("LAMPIRAN C: FORMAT REKAP PERTEMUAN DENGAN MURID", centerX, yPos, { align: "center" });
   yPos += FONTS.heading * 2;
   
-  // Description - 12pt normal, justified
-  doc.setFontSize(FONTS.body);
-  doc.setFont("times", "normal");
-  const descText = doc.splitTextToSize(
-    "Berikut adalah rekapitulasi kegiatan pertemuan guru wali dengan murid dampingan selama periode semester ini:",
-    USABLE_WIDTH
-  );
-  doc.text(descText, MARGINS.left, yPos);
-  yPos += (descText.length * FONTS.body * LINE_SPACING);
-  
-  // Meeting Summary Table
+  // Individual Meeting Records Table (6 columns)
   autoTable(doc, {
     startY: yPos,
-    head: [["Bulan", "Jumlah Pertemuan", "Format Pertemuan", "Persentase Kehadiran"]],
-    body: meetingSummary.map(m => [m.bulan, m.jumlah.toString(), m.format, m.persentase]),
+    head: [[
+      "No.",
+      "Tanggal\nPertemuan",
+      "Nama Murid",
+      "Topik atau\nMasalah yang\nDibahas",
+      "Tindak\nLanjut",
+      "Keterangan"
+    ]],
+    body: meetingRecords.map((record, idx) => [
+      (idx + 1).toString(),
+      record.tanggal,
+      record.namaMurid,
+      record.topikMasalah,
+      record.tindakLanjut,
+      record.keterangan
+    ]),
     theme: "grid",
     headStyles: {
       fillColor: COLORS.tableHeader,
       textColor: COLORS.black,
       fontSize: FONTS.table,
       fontStyle: "bold",
-      font: "times"
+      font: "times",
+      halign: "center",
+      valign: "middle"
     },
-    bodyStyles: { fontSize: FONTS.table - 1, font: "times" },
+    bodyStyles: { 
+      fontSize: FONTS.table - 1, 
+      font: "times",
+      valign: "top"
+    },
     columnStyles: {
-      0: { cellWidth: (USABLE_WIDTH * 0.25) },
-      1: { cellWidth: (USABLE_WIDTH * 0.25) },
-      2: { cellWidth: (USABLE_WIDTH * 0.25) },
-      3: { cellWidth: (USABLE_WIDTH * 0.25) }
+      0: { cellWidth: (USABLE_WIDTH * 0.08), halign: "center" },  // No.
+      1: { cellWidth: (USABLE_WIDTH * 0.15), halign: "center" },  // Tanggal
+      2: { cellWidth: (USABLE_WIDTH * 0.17) },                    // Nama Murid
+      3: { cellWidth: (USABLE_WIDTH * 0.25) },                    // Topik/Masalah
+      4: { cellWidth: (USABLE_WIDTH * 0.20) },                    // Tindak Lanjut
+      5: { cellWidth: (USABLE_WIDTH * 0.15) }                     // Keterangan
     },
     margin: { left: MARGINS.left, right: MARGINS.right },
-    styles: { cellPadding: 4 }
+    styles: { cellPadding: 4, minCellHeight: 15 }
   });
-  
-  yPos = (doc as any).lastAutoTable.finalY + (FONTS.body * 2);
-  
-  // Summary
-  const totalPertemuan = meetingSummary.reduce((sum, m) => sum + m.jumlah, 0);
-  doc.setFont("times", "bold");
-  doc.text("Ringkasan:", MARGINS.left, yPos);
-  yPos += FONTS.body * LINE_SPACING;
-  
-  doc.setFont("times", "normal");
-  doc.text(`• Total Pertemuan: ${totalPertemuan} kali`, MARGINS.left, yPos);
-  yPos += FONTS.body * LINE_SPACING;
-  doc.text(`• Rata-rata Kehadiran: 85%`, MARGINS.left, yPos);
-  yPos += FONTS.body * LINE_SPACING;
-  
-  const noteText = doc.splitTextToSize(
-    "• Catatan: Pertemuan dilakukan secara individu dan kelompok sesuai dengan kebutuhan dan kondisi murid dampingan.",
-    USABLE_WIDTH
-  );
-  doc.text(noteText, MARGINS.left, yPos);
 }
 
 /**
@@ -995,27 +1008,24 @@ function addLampiranD(
 
 /**
  * MODULAR SECTION 6: Add Signature Page
+ * Simple format (as per reference): Nama, Tanda Tangan, Tanggal
  */
 function addSignaturePage(doc: jsPDF, teacherName: string): void {
   doc.addPage();
-  let yPos = PAPER.LEGAL.height - MARGINS.bottom - 150;
+  let yPos = PAPER.LEGAL.height - MARGINS.bottom - 120;
   
   doc.setFontSize(FONTS.body);
   doc.setFont("times", "normal");
   
-  // Left column - Kepala Sekolah
-  doc.text("Mengetahui,", MARGINS.left, yPos);
-  yPos += FONTS.body * LINE_SPACING * 3;
-  doc.text("_____________________", MARGINS.left, yPos);
-  yPos += FONTS.body * LINE_SPACING;
-  doc.text("Kepala Sekolah", MARGINS.left, yPos);
+  // Simple signature format
+  doc.text("Nama", MARGINS.left, yPos);
+  doc.text(": .............................................................................................​", MARGINS.left + 100, yPos);
+  yPos += FONTS.body * LINE_SPACING * 2;
   
-  // Right column - Guru Wali
-  yPos = PAPER.LEGAL.height - MARGINS.bottom - 150;
-  const rightX = PAPER.LEGAL.width - MARGINS.right - 120;
-  doc.text("Guru Wali,", rightX, yPos);
-  yPos += FONTS.body * LINE_SPACING * 3;
-  doc.text("_____________________", rightX, yPos);
-  yPos += FONTS.body * LINE_SPACING;
-  doc.text(teacherName, rightX, yPos);
+  doc.text("Tanda Tangan", MARGINS.left, yPos);
+  doc.text(": .............................................................................................​", MARGINS.left + 100, yPos);
+  yPos += FONTS.body * LINE_SPACING * 2;
+  
+  doc.text("Tanggal", MARGINS.left, yPos);
+  doc.text(": .............................................................................................​", MARGINS.left + 100, yPos);
 }
