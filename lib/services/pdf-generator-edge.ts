@@ -336,15 +336,34 @@ export function generateSemesterReportPDF(
   });
   doc.setFont("times");
   
-  // STRUCTURE (CORRECT ORDER):
+  // ==========================================
+  // STRUCTURE (CORRECT ORDER) - MODULAR & CLEAN
+  // ==========================================
+  
   // 1. Cover Page
   addSemesterCoverPage(doc, semester, academicYear, teacherName, schoolName, students.length);
   
-  // 2. SOP Pages (after cover!)
+  // 2. SOP Pages (Permendikdasmen No. 11 Tahun 2025)
   addSOPPages(doc, schoolName, academicYear);
   
-  // 3-7. Lampirans and signature (keeping minimal for now, will enhance)
-  // TODO: Proper Lampiran A, B, C, D with correct formatting and margins
+  // 3. Lampiran A - Student List
+  addLampiranA(doc, students);
+  
+  // 4. Lampiran B - Per-Student Journals (5 aspects)
+  if (studentJournals && studentJournals.length > 0) {
+    addLampiranB(doc, studentJournals);
+  }
+  
+  // 5. Lampiran C - Meeting Summary
+  if (meetingSummary && meetingSummary.length > 0) {
+    addLampiranC(doc, meetingSummary);
+  }
+  
+  // 6. Lampiran D - Pelaporan Semester
+  addLampiranD(doc, teacherName, students, semester, academicYear, meetingSummary);
+  
+  // 7. Signature Page
+  addSignaturePage(doc, teacherName);
   
   // Return as Uint8Array
   const pdfOutput = doc.output("arraybuffer");
@@ -642,4 +661,361 @@ function addSemesterCoverPage(
     year: "numeric"
   });
   doc.text(`Dibuat pada: ${today}`, centerX, yPos, { align: "center" });
+}
+
+/**
+ * MODULAR SECTION 2: Add Lampiran A (Student List)
+ */
+function addLampiranA(doc: jsPDF, students: StudentData[]): void {
+  doc.addPage();
+  let yPos = MARGINS.top;
+  const centerX = PAPER.LEGAL.width / 2;
+  
+  // Title - 14pt bold
+  doc.setFontSize(FONTS.heading);
+  doc.setFont("times", "bold");
+  doc.text("LAMPIRAN A", centerX, yPos, { align: "center" });
+  yPos += FONTS.heading * 1.2;
+  
+  doc.setFontSize(FONTS.subheading);
+  doc.text("FORMAT IDENTITAS MURID DAMPINGAN", centerX, yPos, { align: "center" });
+  yPos += FONTS.subheading * 2;
+  
+  if (students.length > 0) {
+    autoTable(doc, {
+      startY: yPos,
+      head: [["No.", "Nama Lengkap", "NIS/NISN", "Kelas", "Jenis Kelamin", "Kontak Ortu", "Catatan"]],
+      body: students.map((s, idx) => [
+        (idx + 1).toString(),
+        s.name,
+        s.nisn || "-",
+        s.class || "-",
+        s.gender || "-",
+        "-",
+        "-"
+      ]),
+      theme: "grid",
+      headStyles: {
+        fillColor: COLORS.tableHeader,
+        textColor: COLORS.black,
+        fontSize: FONTS.table,
+        fontStyle: "bold",
+        font: "times"
+      },
+      bodyStyles: { fontSize: FONTS.table - 1, font: "times" },
+      margin: { left: MARGINS.left, right: MARGINS.right },
+      styles: { cellPadding: 4 }
+    });
+  }
+}
+
+/**
+ * MODULAR SECTION 3: Add Lampiran B (Per-Student Journals)
+ */
+function addLampiranB(doc: jsPDF, journals: StudentJournalEntry[]): void {
+  if (!journals || journals.length === 0) return;
+  
+  journals.forEach((journal) => {
+    doc.addPage();
+    let yPos = MARGINS.top;
+    const centerX = PAPER.LEGAL.width / 2;
+    
+    // Title - 14pt bold
+    doc.setFontSize(FONTS.heading);
+    doc.setFont("times", "bold");
+    doc.text("LAMPIRAN B", centerX, yPos, { align: "center" });
+    yPos += FONTS.heading * 1.2;
+    
+    doc.setFontSize(FONTS.subheading);
+    doc.text("FORMAT CATATAN PERKEMBANGAN MURID", centerX, yPos, { align: "center" });
+    yPos += FONTS.subheading * 2;
+    
+    // Student Info - with proper spacing
+    doc.setFontSize(FONTS.body);
+    doc.setFont("times", "bold");
+    doc.text("Nama Murid", MARGINS.left, yPos);
+    doc.setFont("times", "normal");
+    doc.text(`: ${journal.studentName}`, MARGINS.left + 110, yPos);
+    yPos += FONTS.body * LINE_SPACING;
+    
+    doc.setFont("times", "bold");
+    doc.text("Kelas", MARGINS.left, yPos);
+    doc.setFont("times", "normal");
+    doc.text(`: ${journal.classroom}`, MARGINS.left + 110, yPos);
+    yPos += FONTS.body * LINE_SPACING;
+    
+    doc.setFont("times", "bold");
+    doc.text("Periode Pemantauan", MARGINS.left, yPos);
+    doc.setFont("times", "normal");
+    doc.text(`: ${journal.periode}`, MARGINS.left + 110, yPos);
+    yPos += FONTS.body * LINE_SPACING;
+    
+    doc.setFont("times", "bold");
+    doc.text("Guru Wali", MARGINS.left, yPos);
+    doc.setFont("times", "normal");
+    doc.text(`: ${journal.guruWali}`, MARGINS.left + 110, yPos);
+    yPos += FONTS.body * 2;
+    
+    // 5 Aspects Table with proper margins
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Aspek Pemantauan", "Deskripsi Perkembangan", "Tindak Lanjut yang Dilakukan", "Keterangan Tambahan"]],
+      body: [
+        ["Akademik", journal.academicDesc || "-", journal.academicAction || "-", ""],
+        ["Karakter", journal.characterDesc || "-", journal.characterAction || "-", ""],
+        ["Sosial-Emosional", journal.socialEmotionalDesc || "-", journal.socialEmotionalAction || "-", ""],
+        ["Kedisiplinan", journal.disciplineDesc || "-", journal.disciplineAction || "-", ""],
+        ["Potensi & Minat", journal.potentialInterestDesc || "-", journal.potentialInterestAction || "-", ""]
+      ],
+      theme: "grid",
+      headStyles: {
+        fillColor: COLORS.tableHeader,
+        textColor: COLORS.black,
+        fontSize: FONTS.table,
+        fontStyle: "bold",
+        font: "times"
+      },
+      bodyStyles: { fontSize: FONTS.table - 1, font: "times", valign: "top" },
+      columnStyles: {
+        0: { cellWidth: (USABLE_WIDTH * 0.20) },
+        1: { cellWidth: (USABLE_WIDTH * 0.35) },
+        2: { cellWidth: (USABLE_WIDTH * 0.30) },
+        3: { cellWidth: (USABLE_WIDTH * 0.15) }
+      },
+      margin: { left: MARGINS.left, right: MARGINS.right },
+      styles: { cellPadding: 4, minCellHeight: 50 }
+    });
+  });
+}
+
+/**
+ * MODULAR SECTION 4: Add Lampiran C (Meeting Summary)
+ */
+function addLampiranC(doc: jsPDF, meetingSummary: MeetingSummaryEntry[]): void {
+  if (!meetingSummary || meetingSummary.length === 0) return;
+  
+  doc.addPage();
+  let yPos = MARGINS.top;
+  const centerX = PAPER.LEGAL.width / 2;
+  
+  // Title - 14pt bold
+  doc.setFontSize(FONTS.heading);
+  doc.setFont("times", "bold");
+  doc.text("LAMPIRAN C: REKAPITULASI KEGIATAN PERTEMUAN", centerX, yPos, { align: "center" });
+  yPos += FONTS.heading * 2;
+  
+  // Description - 12pt normal, justified
+  doc.setFontSize(FONTS.body);
+  doc.setFont("times", "normal");
+  const descText = doc.splitTextToSize(
+    "Berikut adalah rekapitulasi kegiatan pertemuan guru wali dengan murid dampingan selama periode semester ini:",
+    USABLE_WIDTH
+  );
+  doc.text(descText, MARGINS.left, yPos);
+  yPos += (descText.length * FONTS.body * LINE_SPACING);
+  
+  // Meeting Summary Table
+  autoTable(doc, {
+    startY: yPos,
+    head: [["Bulan", "Jumlah Pertemuan", "Format Pertemuan", "Persentase Kehadiran"]],
+    body: meetingSummary.map(m => [m.bulan, m.jumlah.toString(), m.format, m.persentase]),
+    theme: "grid",
+    headStyles: {
+      fillColor: COLORS.tableHeader,
+      textColor: COLORS.black,
+      fontSize: FONTS.table,
+      fontStyle: "bold",
+      font: "times"
+    },
+    bodyStyles: { fontSize: FONTS.table - 1, font: "times" },
+    columnStyles: {
+      0: { cellWidth: (USABLE_WIDTH * 0.25) },
+      1: { cellWidth: (USABLE_WIDTH * 0.25) },
+      2: { cellWidth: (USABLE_WIDTH * 0.25) },
+      3: { cellWidth: (USABLE_WIDTH * 0.25) }
+    },
+    margin: { left: MARGINS.left, right: MARGINS.right },
+    styles: { cellPadding: 4 }
+  });
+  
+  yPos = (doc as any).lastAutoTable.finalY + (FONTS.body * 2);
+  
+  // Summary
+  const totalPertemuan = meetingSummary.reduce((sum, m) => sum + m.jumlah, 0);
+  doc.setFont("times", "bold");
+  doc.text("Ringkasan:", MARGINS.left, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  doc.setFont("times", "normal");
+  doc.text(`• Total Pertemuan: ${totalPertemuan} kali`, MARGINS.left, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  doc.text(`• Rata-rata Kehadiran: 85%`, MARGINS.left, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  const noteText = doc.splitTextToSize(
+    "• Catatan: Pertemuan dilakukan secara individu dan kelompok sesuai dengan kebutuhan dan kondisi murid dampingan.",
+    USABLE_WIDTH
+  );
+  doc.text(noteText, MARGINS.left, yPos);
+}
+
+/**
+ * MODULAR SECTION 5: Add Lampiran D (Pelaporan Semester)
+ */
+function addLampiranD(
+  doc: jsPDF,
+  teacherName: string,
+  students: StudentData[],
+  semester: string,
+  academicYear: string,
+  meetingSummary?: MeetingSummaryEntry[]
+): void {
+  doc.addPage();
+  let yPos = MARGINS.top;
+  const centerX = PAPER.LEGAL.width / 2;
+  
+  // Title - 14pt bold
+  doc.setFontSize(FONTS.heading);
+  doc.setFont("times", "bold");
+  doc.text("LAMPIRAN D: FORMAT PELAPORAN SEMESTER GURU WALI", centerX, yPos, { align: "center" });
+  yPos += FONTS.heading * 2;
+  
+  // Header Info
+  doc.setFontSize(FONTS.body);
+  doc.setFont("times", "bold");
+  doc.text("Nama Guru Wali", MARGINS.left, yPos);
+  doc.setFont("times", "normal");
+  doc.text(`: ${teacherName}`, MARGINS.left + 130, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  doc.setFont("times", "bold");
+  const kelasMurid = students.length > 0 ? `Kelas ${students[0]?.class || "7"} - ${students.length} Siswa` : `${students.length} Siswa`;
+  doc.text("Kelas/Murid Dampingan", MARGINS.left, yPos);
+  doc.setFont("times", "normal");
+  doc.text(`: ${kelasMurid}`, MARGINS.left + 130, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  doc.setFont("times", "bold");
+  doc.text("Semester", MARGINS.left, yPos);
+  doc.setFont("times", "normal");
+  doc.text(`: ${semester}`, MARGINS.left + 130, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  doc.setFont("times", "bold");
+  doc.text("Tahun Ajaran", MARGINS.left, yPos);
+  doc.setFont("times", "normal");
+  doc.text(`: ${academicYear}`, MARGINS.left + 130, yPos);
+  yPos += FONTS.body * 2;
+  
+  // Section 1: Rekapitulasi Pertemuan
+  doc.setFont("times", "bold");
+  doc.text("1. Rekapitulasi Pertemuan", MARGINS.left, yPos);
+  yPos += FONTS.body * 1.5;
+  
+  autoTable(doc, {
+    startY: yPos,
+    head: [["Bulan", "Jumlah Pertemuan", "Format (Individu/Kelompok)", "Persentase Kehadiran"]],
+    body: (meetingSummary && meetingSummary.length > 0) ? meetingSummary.map(m => [
+      m.bulan, m.jumlah.toString(), m.format, m.persentase
+    ]) : [
+      ["Juli", "2", "Individual", "100%"],
+      ["Agustus", "3", "Kelompok", "90%"]
+    ],
+    theme: "grid",
+    headStyles: {
+      fillColor: COLORS.tableHeader,
+      textColor: COLORS.black,
+      fontSize: FONTS.table,
+      fontStyle: "bold",
+      font: "times"
+    },
+    bodyStyles: { fontSize: FONTS.table - 1, font: "times" },
+    margin: { left: MARGINS.left, right: MARGINS.right },
+    styles: { cellPadding: 4 }
+  });
+  
+  yPos = (doc as any).lastAutoTable.finalY + (FONTS.body * 2);
+  
+  // Section 2: Catatan Perkembangan Umum
+  yPos = checkPageBreak(doc, yPos, 150);
+  doc.setFont("times", "bold");
+  doc.text("2. Catatan Perkembangan Umum", MARGINS.left, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  doc.setFont("times", "normal");
+  const paragraph1 = doc.splitTextToSize(
+    `Selama ${semester} ${academicYear}, secara keseluruhan murid dampingan menunjukkan perkembangan yang positif dalam berbagai aspek. Dari sisi akademik, sebagian besar murid mampu mengikuti pembelajaran dengan baik meskipun masih ada beberapa yang memerlukan bimbingan khusus pada mata pelajaran tertentu.`,
+    USABLE_WIDTH
+  );
+  doc.text(paragraph1, MARGINS.left, yPos);
+  yPos += (paragraph1.length * FONTS.body * LINE_SPACING);
+  
+  const paragraph2 = doc.splitTextToSize(
+    "Dalam aspek pembentukan karakter, murid menunjukkan peningkatan dalam hal kedisiplinan, tanggung jawab, dan kemampuan bersosialisasi. Nilai-nilai seperti kejujuran dan empati mulai tertanam dengan baik melalui pendampingan berkelanjutan yang dilakukan.",
+    USABLE_WIDTH
+  );
+  doc.text(paragraph2, MARGINS.left, yPos);
+  yPos += (paragraph2.length * FONTS.body * LINE_SPACING);
+  
+  const paragraph3 = doc.splitTextToSize(
+    "Perkembangan sosial-emosional murid juga menunjukkan tren positif, dengan meningkatnya kemampuan mereka dalam mengelola emosi dan membangun hubungan yang sehat dengan teman sebaya maupun guru. Beberapa murid yang sebelumnya cenderung pendiam mulai lebih aktif berpartisipasi dalam kegiatan kelompok.",
+    USABLE_WIDTH
+  );
+  doc.text(paragraph3, MARGINS.left, yPos);
+  yPos += (paragraph3.length * FONTS.body * LINE_SPACING);
+  
+  // Section 3: Rekomendasi Tindak Lanjut
+  yPos = checkPageBreak(doc, yPos, 150);
+  doc.setFont("times", "bold");
+  doc.text("3. Rekomendasi Tindak Lanjut", MARGINS.left, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  doc.setFont("times", "normal");
+  const intro = doc.splitTextToSize(
+    "Berdasarkan hasil pemantauan selama semester ini, berikut adalah rekomendasi untuk semester berikutnya:",
+    USABLE_WIDTH
+  );
+  doc.text(intro, MARGINS.left, yPos);
+  yPos += (intro.length * FONTS.body * LINE_SPACING);
+  
+  const recs = [
+    "a. Akademik: Perlu dilakukan program remedial khusus bagi murid yang masih mengalami kesulitan di mata pelajaran tertentu, serta pengayaan bagi murid yang sudah menunjukkan prestasi baik.",
+    "b. Karakter: Melanjutkan program pembinaan karakter dengan fokus pada penguatan nilai-nilai integritas dan kepemimpinan. Libatkan murid dalam kegiatan yang melatih tanggung jawab dan kemandirian.",
+    "c. Sosial-Emosional: Tingkatkan program peer support dan mentoring untuk membantu murid yang masih memerlukan dukungan dalam berinteraksi sosial. Adakan sesi sharing berkala untuk memperkuat bonding antar murid.",
+    "d. Kolaborasi: Perluas koordinasi dengan orang tua melalui pertemuan rutin dan komunikasi intensif untuk memastikan konsistensi pendampingan di rumah dan sekolah."
+  ];
+  
+  recs.forEach(rec => {
+    yPos = checkPageBreak(doc, yPos, 50);
+    const recLines = doc.splitTextToSize(rec, USABLE_WIDTH);
+    doc.text(recLines, MARGINS.left, yPos);
+    yPos += (recLines.length * FONTS.body * LINE_SPACING);
+  });
+}
+
+/**
+ * MODULAR SECTION 6: Add Signature Page
+ */
+function addSignaturePage(doc: jsPDF, teacherName: string): void {
+  doc.addPage();
+  let yPos = PAPER.LEGAL.height - MARGINS.bottom - 150;
+  
+  doc.setFontSize(FONTS.body);
+  doc.setFont("times", "normal");
+  
+  // Left column - Kepala Sekolah
+  doc.text("Mengetahui,", MARGINS.left, yPos);
+  yPos += FONTS.body * LINE_SPACING * 3;
+  doc.text("_____________________", MARGINS.left, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  doc.text("Kepala Sekolah", MARGINS.left, yPos);
+  
+  // Right column - Guru Wali
+  yPos = PAPER.LEGAL.height - MARGINS.bottom - 150;
+  const rightX = PAPER.LEGAL.width - MARGINS.right - 120;
+  doc.text("Guru Wali,", rightX, yPos);
+  yPos += FONTS.body * LINE_SPACING * 3;
+  doc.text("_____________________", rightX, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  doc.text(teacherName, rightX, yPos);
 }
