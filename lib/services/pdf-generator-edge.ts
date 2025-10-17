@@ -1,5 +1,6 @@
 // Edge-compatible PDF Generator using jsPDF
 // Created: 2025-10-16
+// Updated: 2025-10-17 - Added full Lampiran A-D + SOP pages
 // Replaces @react-pdf/renderer for Cloudflare Pages compatibility
 
 import { jsPDF } from "jspdf";
@@ -38,6 +39,32 @@ interface Intervention {
   issue: string;
   action: string;
   result: string;
+}
+
+// Lampiran B: Per-student journal entry
+interface StudentJournalEntry {
+  studentName: string;
+  classroom: string;
+  periode: string;
+  guruWali: string;
+  academicDesc: string;
+  academicAction: string;
+  characterDesc: string;
+  characterAction: string;
+  socialEmotionalDesc: string;
+  socialEmotionalAction: string;
+  disciplineDesc: string;
+  disciplineAction: string;
+  potentialInterestDesc: string;
+  potentialInterestAction: string;
+}
+
+// Lampiran D: Meeting summary entry
+interface MeetingSummaryEntry {
+  bulan: string;
+  jumlah: number;
+  format: string;
+  persentase: string;
 }
 
 /**
@@ -256,121 +283,448 @@ export function generateStudentReportPDF(
 }
 
 /**
- * Generate Semester Report PDF
+ * Generate Semester Report PDF with Full Lampirans
+ * Includes: Cover, Lampiran A-D, and SOP Pages
  */
 export function generateSemesterReportPDF(
   students: StudentData[],
   teacherName: string,
   schoolName: string,
   semester: string,
-  academicYear: string
+  academicYear: string,
+  studentJournals?: StudentJournalEntry[],
+  meetingSummary?: MeetingSummaryEntry[]
 ): Uint8Array {
   const doc = new jsPDF();
+  doc.setFont("times"); // Use Times New Roman equivalent
   
-  doc.setFont("helvetica");
-  let yPos = 20;
+  // ==========================================
+  // COVER PAGE
+  // ==========================================
+  let yPos = 100; // Start from middle of page
   
-  // === HEADER ===
   doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("LAPORAN SEMESTER", 105, yPos, { align: "center" });
-  yPos += 10;
-  
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "normal");
-  doc.text(schoolName, 105, yPos, { align: "center" });
-  yPos += 7;
-  doc.text(`${semester} - Tahun Ajaran ${academicYear}`, 105, yPos, { align: "center" });
+  doc.setFont("times", "bold");
+  doc.text("LAPORAN PEMANTAUAN GURU WALI", 105, yPos, { align: "center" });
   yPos += 15;
   
-  // === SUMMARY ===
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("RINGKASAN", 20, yPos);
-  yPos += 7;
+  doc.setFontSize(14);
+  doc.setFont("times", "bold");
+  doc.text(`SEMESTER ${semester.toUpperCase()}`, 105, yPos, { align: "center" });
+  yPos += 8;
+  doc.text(`TAHUN AJARAN ${academicYear}`, 105, yPos, { align: "center" });
+  yPos += 30;
   
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`Total Siswa: ${students.length}`, 20, yPos);
-  yPos += 6;
-  doc.text(`Guru Wali: ${teacherName}`, 20, yPos);
-  yPos += 12;
+  doc.setFontSize(12);
+  doc.setFont("times", "normal");
+  doc.text(schoolName, 105, yPos, { align: "center" });
+  yPos += 10;
+  doc.text(`Guru Wali: ${teacherName}`, 105, yPos, { align: "center" });
+  yPos += 10;
+  doc.text(`Total Siswa Dampingan: ${students.length} siswa`, 105, yPos, { align: "center" });
+  yPos += 30;
   
-  // === LAMPIRAN A: IDENTITAS MURID (Official Format) ===
-  if (students.length > 0) {
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("LAMPIRAN A: FORMAT IDENTITAS MURID DAMPINGAN", 20, yPos);
-    yPos += 5;
-    
-    // Use official Lampiran A structure: 7 columns
-    // 5% No | 25% Nama | 15% NISN | 10% Kelas | 15% Gender | 15% Kontak | 15% Catatan
-    const pageWidth = 175;
-    
-    autoTable(doc, {
-      startY: yPos,
-      head: [[
-        "No.",
-        "Nama Murid",
-        "NIS/NISN",
-        "Kelas",
-        "Jenis Kelamin",
-        "Kontak Orang Tua",
-        "Catatan Khusus"
-      ]],
-      body: students.map((s, idx) => [
-        (idx + 1).toString() + ".",
-        s.name,
-        s.nisn || "-",
-        s.class || "-",
-        s.gender || "-",
-        "-", // Parent contact not in data
-        "-"  // Notes not in data
-      ]),
-      theme: "grid",
-      headStyles: { 
-        fillColor: [198, 224, 180], // #C6E0B4 (official color)
-        textColor: [0, 0, 0],
-        fontSize: 9,
-        fontStyle: "bold"
-      },
-      bodyStyles: { fontSize: 8 },
-      columnStyles: {
-        0: { cellWidth: pageWidth * 0.05 },  // 5%
-        1: { cellWidth: pageWidth * 0.25 },  // 25%
-        2: { cellWidth: pageWidth * 0.15 },  // 15%
-        3: { cellWidth: pageWidth * 0.10 },  // 10%
-        4: { cellWidth: pageWidth * 0.15 },  // 15%
-        5: { cellWidth: pageWidth * 0.15 },  // 15%
-        6: { cellWidth: pageWidth * 0.15 }   // 15%
-      },
-      margin: { left: 20, right: 20 }
-    });
-    
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-  }
-  
-  // === FOOTER ===
-  if (yPos > 250) {
-    doc.addPage();
-    yPos = 20;
-  }
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  const today = new Date().toLocaleDateString("id-ID", {
+  const todayDate = new Date().toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric"
   });
-  doc.text(`Dibuat pada: ${today}`, 20, yPos);
+  doc.text(`Dibuat pada: ${todayDate}`, 105, yPos, { align: "center" });
+  
+  // ==========================================
+  // LAMPIRAN A: IDENTITAS MURID DAMPINGAN
+  // ==========================================
+  doc.addPage();
+  yPos = 20;
+  
+  doc.setFontSize(14);
+  doc.setFont("times", "bold");
+  doc.text("LAMPIRAN A", 105, yPos, { align: "center" });
+  yPos += 7;
+  doc.setFontSize(12);
+  doc.text("FORMAT IDENTITAS MURID DAMPINGAN", 105, yPos, { align: "center" });
+  yPos += 10;
+  
+  if (students.length > 0) {
+    autoTable(doc, {
+      startY: yPos,
+      head: [[
+        "No.",
+        "Nama Lengkap",
+        "NIS/NISN",
+        "Kelas",
+        "Jenis Kelamin",
+        "Kontak Ortu",
+        "Catatan"
+      ]],
+      body: students.map((s, idx) => [
+        (idx + 1).toString(),
+        s.name,
+        s.nisn || "-",
+        s.class || "-",
+        s.gender || "-",
+        "-",
+        "-"
+      ]),
+      theme: "grid",
+      headStyles: { 
+        fillColor: [198, 224, 180],
+        textColor: [0, 0, 0],
+        fontSize: 10,
+        fontStyle: "bold",
+        font: "times"
+      },
+      bodyStyles: { fontSize: 9, font: "times" },
+      margin: { left: 15, right: 15 }
+    });
+  }
+  
+  // ==========================================
+  // LAMPIRAN B: JURNAL 5 ASPEK PER SISWA
+  // ==========================================
+  if (studentJournals && studentJournals.length > 0) {
+    doc.addPage();
+    yPos = 20;
+    
+    doc.setFontSize(14);
+    doc.setFont("times", "bold");
+    doc.text("LAMPIRAN B", 105, yPos, { align: "center" });
+    yPos += 7;
+    doc.setFontSize(12);
+    doc.text("JURNAL PERKEMBANGAN SISWA (5 ASPEK PEMANTAUAN)", 105, yPos, { align: "center" });
+    yPos += 10;
+    
+    // Generate one page per student
+    studentJournals.forEach((journal, idx) => {
+      if (idx > 0) doc.addPage();
+      yPos = 20;
+      
+      // Student header
+      doc.setFontSize(11);
+      doc.setFont("times", "bold");
+      doc.text(`Nama Siswa: ${journal.studentName}`, 20, yPos);
+      yPos += 6;
+      doc.setFont("times", "normal");
+      doc.text(`Kelas: ${journal.classroom} | Periode: ${journal.periode}`, 20, yPos);
+      yPos += 10;
+      
+      // 5 Aspects Table
+      autoTable(doc, {
+        startY: yPos,
+        head: [[
+          "Aspek",
+          "Deskripsi Perkembangan",
+          "Tindak Lanjut",
+          "Keterangan"
+        ]],
+        body: [
+          [
+            "1. Akademik",
+            journal.academicDesc || "-",
+            journal.academicAction || "-",
+            ""
+          ],
+          [
+            "2. Karakter",
+            journal.characterDesc || "-",
+            journal.characterAction || "-",
+            ""
+          ],
+          [
+            "3. Sosial-Emosional",
+            journal.socialEmotionalDesc || "-",
+            journal.socialEmotionalAction || "-",
+            ""
+          ],
+          [
+            "4. Kedisiplinan",
+            journal.disciplineDesc || "-",
+            journal.disciplineAction || "-",
+            ""
+          ],
+          [
+            "5. Potensi & Minat",
+            journal.potentialInterestDesc || "-",
+            journal.potentialInterestAction || "-",
+            ""
+          ]
+        ],
+        theme: "grid",
+        headStyles: { 
+          fillColor: [198, 224, 180],
+          textColor: [0, 0, 0],
+          fontSize: 10,
+          fontStyle: "bold",
+          font: "times"
+        },
+        bodyStyles: { fontSize: 9, font: "times" },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 60 },
+          2: { cellWidth: 55 },
+          3: { cellWidth: 30 }
+        },
+        margin: { left: 15, right: 15 }
+      });
+    });
+  }
+  
+  // ==========================================
+  // LAMPIRAN C: REKAPITULASI
+  // ==========================================
+  doc.addPage();
+  yPos = 20;
+  
+  doc.setFontSize(14);
+  doc.setFont("times", "bold");
+  doc.text("LAMPIRAN C", 105, yPos, { align: "center" });
+  yPos += 7;
+  doc.setFontSize(12);
+  doc.text("REKAPITULASI PEMANTAUAN SISWA", 105, yPos, { align: "center" });
   yPos += 15;
   
-  doc.text(`Guru Wali,`, 140, yPos);
+  doc.setFontSize(11);
+  doc.setFont("times", "bold");
+  doc.text("RINGKASAN STATISTIK", 20, yPos);
+  yPos += 8;
+  
+  doc.setFont("times", "normal");
+  doc.setFontSize(10);
+  doc.text(`Total Siswa Dampingan: ${students.length} siswa`, 20, yPos);
+  yPos += 6;
+  doc.text(`Siswa dengan Jurnal Lengkap: ${studentJournals?.length || 0} siswa`, 20, yPos);
+  yPos += 6;
+  doc.text(`Persentase Kelengkapan: ${students.length > 0 ? Math.round(((studentJournals?.length || 0) / students.length) * 100) : 0}%`, 20, yPos);
+  yPos += 15;
+  
+  // Summary table
+  autoTable(doc, {
+    startY: yPos,
+    head: [["Kategori", "Jumlah", "Persentase"]],
+    body: [
+      ["Siswa Dinilai", (studentJournals?.length || 0).toString(), `${students.length > 0 ? Math.round(((studentJournals?.length || 0) / students.length) * 100) : 0}%`],
+      ["Siswa Belum Dinilai", (students.length - (studentJournals?.length || 0)).toString(), `${students.length > 0 ? Math.round(((students.length - (studentJournals?.length || 0)) / students.length) * 100) : 0}%`],
+      ["Total Siswa", students.length.toString(), "100%"]
+    ],
+    theme: "grid",
+    headStyles: { 
+      fillColor: [198, 224, 180],
+      fontSize: 10,
+      fontStyle: "bold",
+      font: "times"
+    },
+    bodyStyles: { fontSize: 9, font: "times" },
+    margin: { left: 15, right: 15 }
+  });
+  
+  // ==========================================
+  // LAMPIRAN D: RINGKASAN PERTEMUAN
+  // ==========================================
+  if (meetingSummary && meetingSummary.length > 0) {
+    doc.addPage();
+    yPos = 20;
+    
+    doc.setFontSize(14);
+    doc.setFont("times", "bold");
+    doc.text("LAMPIRAN D", 105, yPos, { align: "center" });
+    yPos += 7;
+    doc.setFontSize(12);
+    doc.text("RINGKASAN LOG PERTEMUAN", 105, yPos, { align: "center" });
+    yPos += 10;
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Bulan", "Jumlah Pertemuan", "Format", "Persentase"]],
+      body: meetingSummary.map(m => [
+        m.bulan,
+        m.jumlah.toString(),
+        m.format,
+        m.persentase
+      ]),
+      theme: "grid",
+      headStyles: { 
+        fillColor: [198, 224, 180],
+        fontSize: 10,
+        fontStyle: "bold",
+        font: "times"
+      },
+      bodyStyles: { fontSize: 9, font: "times" },
+      margin: { left: 15, right: 15 }
+    });
+  }
+  
+  // ==========================================
+  // SOP PAGES (12 PAGES)
+  // ==========================================
+  addSOPPages(doc);
+  
+  // ==========================================
+  // SIGNATURE PAGE
+  // ==========================================
+  doc.addPage();
+  yPos = 200;
+  
+  doc.setFontSize(11);
+  doc.setFont("times", "normal");
+  doc.text("Mengetahui,", 30, yPos);
+  doc.text("Guru Wali,", 130, yPos);
   yPos += 20;
-  doc.text(teacherName, 140, yPos);
+  
+  doc.text("_____________________", 30, yPos);
+  doc.text("_____________________", 130, yPos);
+  yPos += 5;
+  
+  doc.text("Kepala Sekolah", 30, yPos);
+  doc.text(teacherName, 130, yPos);
   
   // Return as Uint8Array
   const pdfOutput = doc.output("arraybuffer");
   return new Uint8Array(pdfOutput);
+}
+
+/**
+ * Add SOP Pages (12 pages of procedural guidelines)
+ */
+function addSOPPages(doc: jsPDF) {
+  const sopContent = [
+    {
+      title: "SOP 1: PEMANTAUAN RUTIN",
+      content: [
+        "1. Lakukan pemantauan siswa minimal 1x per bulan",
+        "2. Dokumentasikan dalam jurnal 5 aspek",
+        "3. Fokus pada perkembangan akademik dan non-akademik",
+        "4. Identifikasi siswa yang membutuhkan perhatian khusus",
+        "5. Koordinasi dengan wali kelas dan guru mata pelajaran"
+      ]
+    },
+    {
+      title: "SOP 2: PERTEMUAN DENGAN SISWA",
+      content: [
+        "1. Jadwalkan pertemuan individual minimal 1x per semester",
+        "2. Buat catatan pertemuan yang detail",
+        "3. Dengarkan aktif kebutuhan dan keluhan siswa",
+        "4. Berikan bimbingan sesuai kebutuhan",
+        "5. Follow up hasil pertemuan"
+      ]
+    },
+    {
+      title: "SOP 3: KOMUNIKASI ORANG TUA",
+      content: [
+        "1. Lakukan komunikasi rutin dengan orang tua",
+        "2. Sampaikan perkembangan siswa secara berkala",
+        "3. Diskusikan kendala dan solusi bersama",
+        "4. Dokumentasikan hasil komunikasi",
+        "5. Koordinasi untuk penanganan kasus khusus"
+      ]
+    },
+    {
+      title: "SOP 4: PENANGANAN KASUS",
+      content: [
+        "1. Identifikasi kasus yang memerlukan intervensi",
+        "2. Lakukan assessment awal",
+        "3. Buat rencana tindak lanjut",
+        "4. Koordinasi dengan pihak terkait (BK, Orang Tua)",
+        "5. Monitoring dan evaluasi berkala"
+      ]
+    },
+    {
+      title: "SOP 5: DOKUMENTASI",
+      content: [
+        "1. Catat semua aktivitas pemantauan secara sistematis",
+        "2. Gunakan template yang tersedia",
+        "3. Update jurnal secara berkala",
+        "4. Simpan dokumen dengan rapi",
+        "5. Backup data secara rutin"
+      ]
+    },
+    {
+      title: "SOP 6: PELAPORAN",
+      content: [
+        "1. Buat laporan semester secara lengkap",
+        "2. Sertakan data statistik dan analisis",
+        "3. Dokumentasikan best practices",
+        "4. Identifikasi area perbaikan",
+        "5. Submit laporan tepat waktu"
+      ]
+    },
+    {
+      title: "SOP 7: KOORDINASI TIM",
+      content: [
+        "1. Koordinasi dengan guru mata pelajaran",
+        "2. Kolaborasi dengan guru BK",
+        "3. Komunikasi dengan wali kelas",
+        "4. Rapat koordinasi berkala",
+        "5. Sharing best practices"
+      ]
+    },
+    {
+      title: "SOP 8: PENGEMBANGAN DIRI",
+      content: [
+        "1. Ikuti pelatihan dan workshop",
+        "2. Update knowledge tentang psikologi remaja",
+        "3. Pelajari teknik konseling dasar",
+        "4. Refleksi diri berkala",
+        "5. Continuous improvement"
+      ]
+    },
+    {
+      title: "SOP 9: ETIKA PROFESI",
+      content: [
+        "1. Jaga kerahasiaan data siswa",
+        "2. Bersikap profesional dan objektif",
+        "3. Hindari konflik kepentingan",
+        "4. Hormati hak siswa dan orang tua",
+        "5. Patuhi kode etik guru"
+      ]
+    },
+    {
+      title: "SOP 10: EVALUASI PROGRAM",
+      content: [
+        "1. Lakukan evaluasi program secara berkala",
+        "2. Kumpulkan feedback dari siswa dan orang tua",
+        "3. Analisis efektivitas program",
+        "4. Identifikasi area perbaikan",
+        "5. Implement continuous improvement"
+      ]
+    },
+    {
+      title: "SOP 11: EMERGENCY PROTOCOL",
+      content: [
+        "1. Identifikasi situasi darurat",
+        "2. Segera laporkan ke pihak terkait",
+        "3. Berikan first aid jika diperlukan",
+        "4. Koordinasi dengan orang tua",
+        "5. Dokumentasikan kejadian"
+      ]
+    },
+    {
+      title: "SOP 12: REFERRAL SYSTEM",
+      content: [
+        "1. Identifikasi kasus yang perlu dirujuk",
+        "2. Koordinasi dengan guru BK atau psikolog",
+        "3. Sampaikan data pendukung lengkap",
+        "4. Follow up hasil rujukan",
+        "5. Dokumentasikan proses rujukan"
+      ]
+    }
+  ];
+  
+  sopContent.forEach((sop, idx) => {
+    doc.addPage();
+    let yPos = 30;
+    
+    // SOP Title
+    doc.setFontSize(14);
+    doc.setFont("times", "bold");
+    doc.text(sop.title, 105, yPos, { align: "center" });
+    yPos += 15;
+    
+    // SOP Content
+    doc.setFontSize(11);
+    doc.setFont("times", "normal");
+    sop.content.forEach(line => {
+      doc.text(line, 20, yPos);
+      yPos += 8;
+    });
+  });
 }

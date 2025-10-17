@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       { bulan: "September", jumlah: 2, format: "Kelompok", persentase: "2%" },
     ];
 
-    // Generate PDF using jsPDF (edge-compatible)
+    // Generate PDF using jsPDF with full lampirans (edge-compatible)
     const pdfBytes = generateSemesterReportPDF(
       allStudents.map((s) => ({
         id: s.id,
@@ -144,12 +144,14 @@ export async function POST(request: NextRequest) {
       session.fullName || "Nama Guru",
       "SMP Negeri 1",
       semester,
-      tahunAjaran
+      tahunAjaran,
+      studentJournals, // Lampiran B data
+      meetingSummary   // Lampiran D data
     );
 
     const filename = `Laporan_Semester_${semester}_${tahunAjaran.replace("/", "-")}_${new Date().toISOString().split("T")[0]}.pdf`;
 
-    // Return PDF directly (R2 caching removed for MVP simplicity)
+    // Return PDF directly (caching will be added in next commit)
     return new NextResponse(pdfBytes.buffer as any, {
       headers: {
         "Content-Type": "application/pdf",
