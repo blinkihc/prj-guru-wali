@@ -1,9 +1,12 @@
 // API Route: /api/reports/semester
-// Generate semester report PDF with caching and streaming
-// Updated: 2025-10-15 - Added R2 cache + streaming support + TypeScript types
+// Generate semester report PDF with real database data
+// Updated: 2025-10-17 - Replaced mock data with real D1 database queries
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { eq, sql } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { students, monthlyJournals, meetingLogs } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
 import { generateSemesterReportPDF } from "@/lib/services/pdf-generator-edge";
 
@@ -33,19 +36,6 @@ interface MeetingSummaryEntry {
   persentase: string;
 }
 
-// Mock data - empty for MVP v1.0.0
-const mockStudents: Array<{ id: string; fullName: string; classroom: string }> =
-  [];
-const mockJournals: Array<{
-  studentId: string;
-  monitoringPeriod: string;
-  academicDesc?: string;
-  characterDesc?: string;
-  socialEmotionalDesc?: string;
-  disciplineDesc?: string;
-  potentialInterestDesc?: string;
-}> = [];
-
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
@@ -63,11 +53,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const students = mockStudents;
-    const allJournals = mockJournals;
+    // Get D1 binding (with fallback for local dev)
+    let db;
+    try {
+      // @ts-ignore
+      const { getRequestContext } = await import("@cloudflare/next-on-pages");
+      const ctx = getRequestContext();
+      const env = ctx?.env as any;
+
+      if (!env?.DB) {
+        // Local dev fallback - return error
+        console.warn("[SemesterReport] Running in local dev mode");
+        return NextResponse.json(
+          { error: "Database not available in local dev" },
+          { status: 503 },
+        );
+      }
+
+      db = getDb(env.DB);
+    } catch (error) {
+      console.warn("[SemesterReport] Cloudflare context not available");
+      return NextResponse.json(
+        { error: "Database not available" },
+        { status: 503 },
+      );
+    }
+
+    // Fetch real data from database
+    const allStudents = await db
+      .select()
+      .from(students)
+      .where(eq(students.userId, session.userId));
+
+    // Fetch journals for all students (JOIN not needed, filter by studentId)
+    const studentIds = allStudents.map((s) => s.id);
+    const allJournals = studentIds.length > 0
+      ? await db
+          .select()
+          .from(monthlyJournals)
+          .where(
+            sql`${monthlyJournals.studentId} IN (${sql.join(studentIds.map((id) => sql`${id}`), sql`, `)})`
+          )
+      : [];
 
     // Transform journals to per-student format for Lampiran B
-    const studentJournals: StudentJournalEntry[] = students.map((student) => {
+    const studentJournals: StudentJournalEntry[] = allStudents.map((student) => {
       // Get latest journal for this student
       const journal = allJournals.find((j) => j.studentId === student.id);
 
@@ -104,12 +134,12 @@ export async function POST(request: NextRequest) {
 
     // Generate PDF using jsPDF (edge-compatible)
     const pdfBytes = generateSemesterReportPDF(
-      students.map(s => ({
+      allStudents.map((s) => ({
         id: s.id,
         name: s.fullName,
-        nisn: "", // Not available in mock
+        nisn: s.nisn || "",
         class: s.classroom || "7A",
-        gender: "", // Not available in mock
+        gender: s.gender || "",
       })),
       session.fullName || "Nama Guru",
       "SMP Negeri 1",

@@ -1,12 +1,12 @@
 // Reports Page - Archive System
 // Created: 2025-01-14
-// Updated: 2025-10-15 - Added proper TypeScript types
-// Shows archived semester reports and individual student reports
+// Updated: 2025-10-17 - Replaced mock data with real API data
+// Shows archived semester reports and individual student reports from database
 
 "use client";
 
 import { Calendar, Download, FileText, Trash2, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +54,9 @@ interface IndividualReport {
 export default function ReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [semesterReports, setSemesterReports] = useState<SemesterReport[]>([]);
+  const [individualReports, setIndividualReports] = useState<IndividualReport[]>([]);
 
   // Download semester report
   const handleDownloadSemester = async (report: SemesterReport) => {
@@ -116,34 +119,31 @@ export default function ReportsPage() {
     }
   };
 
-  // Mock data - will be replaced with actual API calls
-  const semesterReports = [
-    {
-      id: "1",
-      title: "Laporan Semester Ganjil 2024/2025",
-      semester: "Ganjil",
-      tahunAjaran: "2024/2025",
-      periodeStart: "2024-07-01",
-      periodeEnd: "2024-12-31",
-      totalStudents: 5,
-      totalJournals: 10,
-      totalMeetings: 12,
-      fileSize: 245678,
-      createdAt: "2025-01-14T10:00:00Z",
-    },
-  ];
+  // Fetch reports data from API
+  const fetchReports = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/reports");
+      
+      if (response.ok) {
+        const data = (await response.json()) as {
+          semesterReports: SemesterReport[];
+          individualReports: IndividualReport[];
+        };
+        setSemesterReports(data.semesterReports || []);
+        setIndividualReports(data.individualReports || []);
+      }
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const individualReports = [
-    {
-      id: "1",
-      studentId: "1",
-      studentName: "Ahmad Rizki Pratama",
-      classroom: "7A",
-      periode: "Januari 2025",
-      fileSize: 13633,
-      createdAt: "2025-01-14T12:00:00Z",
-    },
-  ];
+  // Load data on mount
+  useEffect(() => {
+    fetchReports();
+  }, []);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
