@@ -85,10 +85,10 @@ const PAPER = {
 };
 
 const MARGINS = {
-  left: 2 * 28.35,   // 4 cm
-  right: 1.5 * 28.35,  // 3 cm  
-  top: 2 * 28.35,    // 4 cm
-  bottom: 1.5 * 28.35  // 3 cm
+  left: 2 * 28.35,     // 2 cm
+  right: 1.5 * 28.35,  // 1.5 cm
+  top: 2 * 28.35,      // 2 cm
+  bottom: 1.5 * 28.35  // 1.5 cm
 };
 
 const FONTS = {
@@ -441,106 +441,124 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   // I. Dasar Hukum
   doc.setFont("times", "bold");
   doc.text("I. Dasar Hukum", leftMargin, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
   doc.text("1. Permendikdasmen No. 11 Tahun 2025 tentang Pemenuhan Beban Kerja", indent, yPos);
-  yPos += 5;
+  yPos += FONTS.body * LINE_SPACING;
   doc.text("   Guru", indent, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.text("2. Pasal 9 ayat (1-5): Kewajiban dan ruang lingkup tugas Guru Wali", indent, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.text("3. Pasal 14: Ekuivalensi tugas Guru Wali setara 2 JP per minggu", indent, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.text("4. Pasal 17 dan 18: Penetapan, pelaksanaan, dan penghitungan beban", indent, yPos);
-  yPos += 5;
+  yPos += FONTS.body * LINE_SPACING;
   doc.text("   kerja", indent, yPos);
-  yPos += 10;
+  yPos += FONTS.body * 2;
   
   // II. Pengertian
   doc.setFont("times", "bold");
   doc.text("II. Pengertian", leftMargin, yPos);
-  yPos += 6;
-  doc.setFont("times", "bold");
-  const pengertiText1 = "Guru Wali";
-  doc.text(pengertiText1, leftMargin, yPos);
-  const w1 = doc.getTextWidth(pengertiText1);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  // Use splitTextToSize for proper text wrapping
   doc.setFont("times", "normal");
-  doc.text(" adalah guru mata pelajaran yang diberi tugas mendampingi", leftMargin + w1, yPos);
-  yPos += 6;
-  doc.text("perkembangan akademik, karakter, keterampilan, dan kompetensi murid dari saat", leftMargin, yPos);
-  yPos += 6;
-  doc.text("masuk hingga lulus pada satuan pendidikan yang sama.", leftMargin, yPos);
-  yPos += 10;
+  const pengertiText = "Guru Wali adalah guru mata pelajaran yang diberi tugas mendampingi perkembangan akademik, karakter, keterampilan, dan kompetensi murid dari saat masuk hingga lulus pada satuan pendidikan yang sama.";
+  const pengertiLines = doc.splitTextToSize(pengertiText, USABLE_WIDTH);
+  doc.text(pengertiLines, leftMargin, yPos);
+  yPos += pengertiLines.length * FONTS.body * LINE_SPACING;
+  yPos += FONTS.body * LINE_SPACING;
   
   // III. Tujuan
   doc.setFont("times", "bold");
   doc.text("III. Tujuan", leftMargin, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
   doc.text("Adapun tujuan guru wali yaitu :", leftMargin, yPos);
-  yPos += 6;
-  doc.text("\u2022 Menjamin pelaksanaan pendampingan murid secara menyeluruh dan", indent, yPos);
-  yPos += 5;
-  doc.text("  berkesinambungan.", indent, yPos);
-  yPos += 6;
-  doc.text("\u2022 Meningkatkan keterlibatan guru dalam pendidikan karakter dan", indent, yPos);
-  yPos += 5;
-  doc.text("  pengembangan potensi murid.", indent, yPos);
-  yPos += 6;
-  doc.text("\u2022 Memberikan dukungan sistematis terhadap pertumbuhan akademik dan", indent, yPos);
-  yPos += 5;
-  doc.text("  non-akademik peserta didik.", indent, yPos);
-  yPos += 10;
+  yPos += FONTS.body * LINE_SPACING;
+  
+  // Bullet 1 - with text wrapping
+  const tujuan1 = "• Menjamin pelaksanaan pendampingan murid secara menyeluruh dan berkesinambungan.";
+  const tujuan1Lines = doc.splitTextToSize(tujuan1, USABLE_WIDTH - 15);
+  doc.text(tujuan1Lines, indent, yPos);
+  yPos += tujuan1Lines.length * FONTS.body * LINE_SPACING;
+  
+  // Bullet 2
+  const tujuan2 = "• Meningkatkan keterlibatan guru dalam pendidikan karakter dan pengembangan potensi murid.";
+  const tujuan2Lines = doc.splitTextToSize(tujuan2, USABLE_WIDTH - 15);
+  doc.text(tujuan2Lines, indent, yPos);
+  yPos += tujuan2Lines.length * FONTS.body * LINE_SPACING;
+  
+  // Bullet 3
+  const tujuan3 = "• Memberikan dukungan sistematis terhadap pertumbuhan akademik dan non-akademik peserta didik.";
+  const tujuan3Lines = doc.splitTextToSize(tujuan3, USABLE_WIDTH - 15);
+  doc.text(tujuan3Lines, indent, yPos);
+  yPos += tujuan3Lines.length * FONTS.body * LINE_SPACING;
+  yPos += FONTS.body * LINE_SPACING;
   
   // IV. Ruang Lingkup Tugas
   doc.setFont("times", "bold");
   doc.text("IV. Ruang Lingkup Tugas", leftMargin, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("Berdasarkan Pasal 9 ayat (2), Guru Wali melaksanakan tugas sebagai berikut:", leftMargin, yPos);
-  yPos += 8;
+  const introText = "Berdasarkan Pasal 9 ayat (2), Guru Wali melaksanakan tugas sebagai berikut:";
+  const introLines = doc.splitTextToSize(introText, USABLE_WIDTH);
+  doc.text(introLines, leftMargin, yPos);
+  yPos += introLines.length * FONTS.body * LINE_SPACING + FONTS.body * 0.5;
   
   doc.setFont("times", "bold");
   doc.text("1. Pendampingan Akademik", indent, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("Membantu murid dalam perencanaan dan refleksi belajar.", leftMargin, yPos);
-  yPos += 8;
+  const desc1 = "Membantu murid dalam perencanaan dan refleksi belajar.";
+  const desc1Lines = doc.splitTextToSize(desc1, USABLE_WIDTH - 15);
+  doc.text(desc1Lines, indent, yPos);
+  yPos += desc1Lines.length * FONTS.body * LINE_SPACING + FONTS.body * 0.5;
   
   doc.setFont("times", "bold");
   doc.text("2. Pengembangan Kompetensi dan Keterampilan", indent, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("Mendorong minat bakat serta pengembangan soft skills.", leftMargin, yPos);
-  yPos += 8;
+  const desc2 = "Mendorong minat bakat serta pengembangan soft skills.";
+  const desc2Lines = doc.splitTextToSize(desc2, USABLE_WIDTH - 15);
+  doc.text(desc2Lines, indent, yPos);
+  yPos += desc2Lines.length * FONTS.body * LINE_SPACING + FONTS.body * 0.5;
   
   doc.setFont("times", "bold");
   doc.text("3. Pembinaan Karakter", indent, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("Menanamkan nilai kedisiplinan, kejujuran, tanggung jawab, dan empati.", leftMargin, yPos);
-  yPos += 8;
+  const desc3 = "Menanamkan nilai kedisiplinan, kejujuran, tanggung jawab, dan empati.";
+  const desc3Lines = doc.splitTextToSize(desc3, USABLE_WIDTH - 15);
+  doc.text(desc3Lines, indent, yPos);
+  yPos += desc3Lines.length * FONTS.body * LINE_SPACING + FONTS.body * 0.5;
   
   doc.setFont("times", "bold");
   doc.text("4. Pendampingan Berkelanjutan", indent, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("Menjadi pendamping murid dari awal hingga akhir masa belajar.", leftMargin, yPos);
-  yPos += 10;
+  const desc4 = "Menjadi pendamping murid dari awal hingga akhir masa belajar.";
+  const desc4Lines = doc.splitTextToSize(desc4, USABLE_WIDTH - 15);
+  doc.text(desc4Lines, indent, yPos);
+  yPos += desc4Lines.length * FONTS.body * LINE_SPACING + FONTS.body * LINE_SPACING;
   
   // V. Prosedur Pelaksanaan
   doc.setFont("times", "bold");
   doc.text("V. Prosedur Pelaksanaan", leftMargin, yPos);
-  yPos += 8;
+  yPos += FONTS.body * LINE_SPACING * 1.5;
   
   doc.text("1. Penunjukan Guru Wali", leftMargin, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("\u2022 Dilakukan oleh Kepala Sekolah (Pasal 18 ayat 1).", indent, yPos);
-  yPos += 6;
-  doc.text("\u2022 Berdasarkan rasio jumlah murid dengan jumlah guru mata pelajaran", indent, yPos);
-  yPos += 5;
-  doc.text("  (Pasal 18 ayat 2).", indent, yPos);
+  const penunjukan1 = "• Dilakukan oleh Kepala Sekolah (Pasal 18 ayat 1).";
+  const penunjukan1Lines = doc.splitTextToSize(penunjukan1, USABLE_WIDTH - 15);
+  doc.text(penunjukan1Lines, indent, yPos);
+  yPos += penunjukan1Lines.length * FONTS.body * LINE_SPACING;
+  
+  const penunjukan2 = "• Berdasarkan rasio jumlah murid dengan jumlah guru mata pelajaran (Pasal 18 ayat 2).";
+  const penunjukan2Lines = doc.splitTextToSize(penunjukan2, USABLE_WIDTH - 15);
+  doc.text(penunjukan2Lines, indent, yPos);
+  yPos += penunjukan2Lines.length * FONTS.body * LINE_SPACING;
   
   // ==========================================
   // PAGE 2: Prosedur Pelaksanaan (Table)
@@ -551,9 +569,9 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   
   doc.setFont("times", "bold");
   doc.text("2. Pelaksanaan Tugas", leftMargin, yPos);
-  yPos += 8;
+  yPos += FONTS.body * LINE_SPACING * 1.5;
   
-  // Table for Kegiatan
+  // Table for Kegiatan - use full USABLE_WIDTH with proper margins
   autoTable(doc, {
     startY: yPos,
     head: [["No", "Kegiatan", "Penjelasan", "Waktu Pelaksanaan"]],
@@ -575,12 +593,13 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
     },
     bodyStyles: { fontSize: 9, font: "times" },
     columnStyles: {
-      0: { cellWidth: 10 },
-      1: { cellWidth: 55 },
-      2: { cellWidth: 60 },
-      3: { cellWidth: 50 }
+      0: { cellWidth: 25 },  // No - narrower
+      1: { cellWidth: 'auto' },  // Kegiatan - auto width
+      2: { cellWidth: 'auto' },  // Penjelasan - auto width  
+      3: { cellWidth: 85 }   // Waktu - medium width
     },
-    margin: { left: 15, right: 15 }
+    margin: { left: MARGINS.left, right: MARGINS.right },
+    tableWidth: 'auto'
   });
   
   yPos = (doc as any).lastAutoTable.finalY + 10;
@@ -588,47 +607,46 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   // VI. Evaluasi dan Pelaporan
   doc.setFont("times", "bold");
   doc.text("VI. Evaluasi dan Pelaporan", leftMargin, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("\u2022 Guru Wali menyusun laporan singkat setiap semester berisi:", indent, yPos);
-  yPos += 6;
-  doc.text("o Rekap pertemuan dan kegiatan", indent + 15, yPos);
-  yPos += 6;
-  doc.text("o Catatan perkembangan murid", indent + 15, yPos);
-  yPos += 6;
-  doc.text("o Rekomendasi tindak lanjut", indent + 15, yPos);
-  yPos += 6;
-  doc.text("\u2022 Laporan dikumpulkan ke Wakil Kepala Sekolah bidang Kesiswaan atau", indent, yPos);
-  yPos += 5;
-  doc.text("  Kurikulum.", indent, yPos);
-  yPos += 10;
+  const laporan1 = "• Guru Wali menyusun laporan singkat setiap semester berisi:";
+  const laporan1Lines = doc.splitTextToSize(laporan1, USABLE_WIDTH - 15);
+  doc.text(laporan1Lines, indent, yPos);
+  yPos += laporan1Lines.length * FONTS.body * LINE_SPACING;
+  
+  doc.text("   o Rekap pertemuan dan kegiatan", indent, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  doc.text("   o Catatan perkembangan murid", indent, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  doc.text("   o Rekomendasi tindak lanjut", indent, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  
+  const laporan2 = "• Laporan dikumpulkan ke Wakil Kepala Sekolah bidang Kesiswaan atau Kurikulum.";
+  const laporan2Lines = doc.splitTextToSize(laporan2, USABLE_WIDTH - 15);
+  doc.text(laporan2Lines, indent, yPos);
+  yPos += laporan2Lines.length * FONTS.body * LINE_SPACING;
+  yPos += FONTS.body * LINE_SPACING;
   
   // VII. Ekuivalensi Beban Kerja
   doc.setFont("times", "bold");
   doc.text("VII. Ekuivalensi Beban Kerja", leftMargin, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  const ekvText1 = "\u2022 Tugas Guru Wali ";
-  doc.text(ekvText1, indent, yPos);
-  const w2 = doc.getTextWidth(ekvText1);
-  doc.setFont("times", "bold");
-  const ekvText2 = "setara dengan 2 jam Tatap Muka per minggu";
-  doc.text(ekvText2, indent + w2, yPos);
-  yPos += 5;
-  doc.setFont("times", "normal");
-  doc.text("  (Pasal 14 dan Lampiran Permendikdasmen No. 11 Tahun 2025)", indent, yPos);
-  yPos += 10;
+  const ekvText = "• Tugas Guru Wali setara dengan 2 jam Tatap Muka per minggu (Pasal 14 dan Lampiran Permendikdasmen No. 11 Tahun 2025)";
+  const ekvLines = doc.splitTextToSize(ekvText, USABLE_WIDTH - 15);
+  doc.text(ekvLines, indent, yPos);
+  yPos += ekvLines.length * FONTS.body * LINE_SPACING;
+  yPos += FONTS.body * LINE_SPACING;
   
   // VIII. Penutup
   doc.setFont("times", "bold");
   doc.text("VIII. Penutup", leftMargin, yPos);
-  yPos += 6;
+  yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("SOP ini menjadi acuan pelaksanaan tugas Guru Wali untuk memastikan", leftMargin, yPos);
-  yPos += 6;
-  doc.text("pendampingan murid berjalan sistematis, profesional, dan berdampak pada", leftMargin, yPos);
-  yPos += 6;
-  doc.text("perkembangan peserta didik secara utuh.", leftMargin, yPos);
+  const penutupText = "SOP ini menjadi acuan pelaksanaan tugas Guru Wali untuk memastikan pendampingan murid berjalan sistematis, profesional, dan berdampak pada perkembangan peserta didik secara utuh.";
+  const penutupLines = doc.splitTextToSize(penutupText, USABLE_WIDTH);
+  doc.text(penutupLines, leftMargin, yPos);
+  yPos += penutupLines.length * FONTS.body * LINE_SPACING;
 }
 
 // ==========================================
