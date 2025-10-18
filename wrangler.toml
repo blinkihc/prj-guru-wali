@@ -1,10 +1,14 @@
 # Wrangler configuration for Cloudflare Pages
-# Last updated: 2025-10-12
+# Last updated: 2025-10-18
 
 name = "prj-guru-wali"
 compatibility_date = "2025-01-10"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
+
+# Build command for Cloudflare Pages
+[build]
+command = "npx @cloudflare/next-on-pages@1"
 
 # D1 Database binding
 [[d1_databases]]
