@@ -3,6 +3,8 @@
 
 "use client";
 
+export const runtime = "edge";
+
 import { useEffect, useState } from "react";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { SkeletonCard } from "@/components/ui/skeleton";

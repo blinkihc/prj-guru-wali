@@ -4,6 +4,8 @@
 
 "use client";
 
+export const runtime = "edge";
+
 import { FileText, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

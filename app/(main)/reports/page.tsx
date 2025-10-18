@@ -5,6 +5,8 @@
 
 "use client";
 
+export const runtime = "edge";
+
 import { Calendar, Download, FileText, Trash2, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";

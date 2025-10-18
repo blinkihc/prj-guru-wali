@@ -3,6 +3,8 @@
 
 "use client";
 
+export const runtime = "edge";
+
 import { Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";

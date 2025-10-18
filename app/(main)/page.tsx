@@ -6,6 +6,8 @@
 
 "use client";
 
+export const runtime = "edge";
+
 import {
   BookOpen,
   MessageSquare,

@@ -3,6 +3,8 @@
 
 "use client";
 
+export const runtime = "edge";
+
 import { Download, FileText, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Papa from "papaparse";

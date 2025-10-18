@@ -5,6 +5,8 @@
 
 "use client";
 
+export const runtime = "edge";
+
 import {
   ArrowLeft,
   Download,
