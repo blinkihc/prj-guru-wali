@@ -17,7 +17,7 @@ export interface CloudflareEnv {
 export function getCloudflareEnv(): CloudflareEnv | null {
   try {
     // Try to get from @cloudflare/next-on-pages
-    // @ts-expect-error
+    // @ts-ignore - Dynamic require for Cloudflare context
     const { getRequestContext } = require("@cloudflare/next-on-pages");
     if (typeof getRequestContext === "function") {
       const ctx = getRequestContext();
