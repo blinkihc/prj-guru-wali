@@ -67,3 +67,13 @@ worker-configuration.d.ts
 local-dev.db
 local-dev.db-*
 seed-data.sql
+
+# Seed scripts (local development only)
+/drizzle/seed-dev.ts
+/drizzle/test-seed.ts
+/drizzle/sync-to-wrangler.ts
+/drizzle/check-wrangler-db.ts
+/drizzle/init-wrangler-tables.ts
+/drizzle/recreate-wrangler-tables.ts
+/drizzle/insert-dev-user.sql
+drizzle.config.local.ts
