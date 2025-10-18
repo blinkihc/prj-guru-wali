@@ -151,6 +151,23 @@ export async function POST(request: NextRequest) {
       { bulan: "September", jumlah: 2, format: "Kelompok", persentase: "2%" },
     ];
 
+    // Prepare cover options (Phase 1: Simple cover only, no DB query yet)
+    // TODO Phase 2: Fetch from user_settings table
+    const coverOptions = {
+      type: 'simple' as const,  // Default to simple cover for now
+      schoolName: "SMP Negeri 1",
+      semester,
+      academicYear: tahunAjaran,
+      teacherName: session.fullName || "Nama Guru",
+      totalStudents: allStudents.length,
+      
+      // Logo URLs (Phase 2: Will be fetched from user_settings)
+      logoDinasPendidikan: undefined,  // Logo Dinas Pendidikan (uploaded in settings)
+      logoSekolah: undefined,          // Logo Sekolah (uploaded in settings)
+      
+      // illustrationUrl: undefined    // For illustration cover type (Phase 2)
+    };
+
     // Generate PDF using jsPDF with full lampirans (edge-compatible)
     const pdfBytes = generateSemesterReportPDF(
       allStudents.map((s) => ({
@@ -160,13 +177,11 @@ export async function POST(request: NextRequest) {
         class: s.classroom || "7A",
         gender: s.gender || "",
       })),
-      session.fullName || "Nama Guru",
-      "SMP Negeri 1",
-      semester,
-      tahunAjaran,
-      studentJournals,  // Lampiran B data
-      meetingRecords,   // Lampiran C data (NEW!)
-      meetingSummary    // Lampiran D data
+      coverOptions,             // Pass cover options object
+      session.nipNuptk || "-",  // NIP/NUPTK for signature
+      studentJournals,          // Lampiran B data
+      meetingRecords,           // Lampiran C data
+      meetingSummary            // Lampiran D data
     );
 
     const filename = `Laporan_Semester_${semester}_${tahunAjaran.replace("/", "-")}_${new Date().toISOString().split("T")[0]}.pdf`;

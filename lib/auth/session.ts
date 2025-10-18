@@ -8,6 +8,7 @@ export interface SessionData {
   userId: string;
   email: string;
   fullName: string;
+  nipNuptk?: string;
   isLoggedIn: boolean;
 }
 
@@ -45,11 +46,13 @@ export async function createSession(
   userId: string,
   email: string,
   fullName: string,
+  nipNuptk?: string,
 ): Promise<void> {
   const session = await getSession();
   session.userId = userId;
   session.email = email;
   session.fullName = fullName;
+  session.nipNuptk = nipNuptk;
   session.isLoggedIn = true;
   await session.save();
 }
@@ -87,5 +90,6 @@ export async function getCurrentUser(): Promise<Omit<
     userId: session.userId,
     email: session.email,
     fullName: session.fullName,
+    nipNuptk: session.nipNuptk,
   };
 }

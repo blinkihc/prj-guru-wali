@@ -7,6 +7,29 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// Decorative corner design (extracted from SVG - geometric shapes)
+// Based on decorative-corner.svg: Blue trapezoid + Orange accent
+// No external dependencies - pure jsPDF drawing
+
+// ==========================================
+// COVER OPTIONS - Dual Cover System Support
+// ==========================================
+interface CoverOptions {
+  type: 'simple' | 'illustration';
+  illustrationUrl?: string;  // Future: R2 image URL for illustration cover
+  
+  // Logo options for simple cover
+  logoDinasPendidikan?: string;  // Base64 or URL - Education Department logo
+  logoSekolah?: string;          // Base64 or URL - School logo
+  
+  // Basic info
+  schoolName: string;
+  semester: string;
+  academicYear: string;
+  teacherName: string;
+  totalStudents: number;
+}
+
 interface StudentData {
   id: string;
   name: string;
@@ -87,7 +110,7 @@ const PAPER = {
 const MARGINS = {
   left: 2 * 28.35,     // 2 cm
   right: 1.5 * 28.35,  // 1.5 cm
-  top: 2 * 28.35,      // 2 cm
+  top: 3 * 28.35,      // 2 cm
   bottom: 1.5 * 28.35  // 1.5 cm
 };
 
@@ -328,13 +351,18 @@ export function generateStudentReportPDF(
  * Generate Semester Report PDF with Full Lampirans
  * MODULAR APPROACH with SOLID principles
  * Legal paper, proper margins, professional layout
+ * 
+ * @param students - List of students
+ * @param coverOptions - Cover page configuration (simple or illustration)
+ * @param nipNuptk - Teacher ID for signature
+ * @param studentJournals - Optional student journal entries
+ * @param meetingRecords - Optional meeting records
+ * @param meetingSummary - Optional meeting summary
  */
 export function generateSemesterReportPDF(
   students: StudentData[],
-  teacherName: string,
-  schoolName: string,
-  semester: string,
-  academicYear: string,
+  coverOptions: CoverOptions,
+  nipNuptk: string,
   studentJournals?: StudentJournalEntry[],
   meetingRecords?: MeetingRecordEntry[],      // Lampiran C: Individual meetings
   meetingSummary?: MeetingSummaryEntry[]      // Lampiran D: Monthly summary
@@ -346,15 +374,18 @@ export function generateSemesterReportPDF(
   });
   doc.setFont("times");
   
+  // Decorative corners will be drawn using geometric shapes
+  
+  
   // ==========================================
   // STRUCTURE (CORRECT ORDER) - MODULAR & CLEAN
   // ==========================================
   
-  // 1. Cover Page
-  addSemesterCoverPage(doc, semester, academicYear, teacherName, schoolName, students.length);
+  // 1. Cover Page (with flexible cover options)
+  addSemesterCoverPage(doc, coverOptions);
   
   // 2. SOP Pages (Permendikdasmen No. 11 Tahun 2025)
-  addSOPPages(doc, schoolName, academicYear);
+  addSOPPages(doc, coverOptions.schoolName, coverOptions.academicYear);
   
   // 3. Lampiran A - Student List
   addLampiranA(doc, students);
@@ -370,7 +401,7 @@ export function generateSemesterReportPDF(
   }
   
   // 6. Lampiran D - Pelaporan Semester (with signature at the end)
-  addLampiranD(doc, teacherName, students, semester, academicYear, meetingSummary);
+  addLampiranD(doc, coverOptions.teacherName, students, coverOptions.semester, coverOptions.academicYear, nipNuptk, meetingSummary);
   
   // Return as Uint8Array
   const pdfOutput = doc.output("arraybuffer");
@@ -378,30 +409,79 @@ export function generateSemesterReportPDF(
 }
 
 /**
- * HELPER: Add decorative geometric corners to page
- * Upper left and bottom right corners with simple shapes
+ * Add decorative PNG corners from CDN
+ * Only adds corners if image was successfully loaded
  */
 function addDecorativeCorners(doc: jsPDF): void {
-  const cornerSize = 40;
-  const color = COLORS.tableHeader; // Use same green as tables [198, 224, 180]
-  
-  // Upper left corner - L-shape
-  doc.setFillColor(color[0], color[1], color[2]);
-  doc.setDrawColor(color[0] - 20, color[1] - 20, color[2] - 20);
-  
-  // Horizontal bar (top)
-  doc.roundedRect(0, 0, cornerSize * 2, 8, 2, 2, 'FD');
-  // Vertical bar (left)
-  doc.roundedRect(0, 0, 8, cornerSize * 2, 2, 2, 'FD');
-  
-  // Bottom right corner - L-shape
   const pageWidth = PAPER.LEGAL.width;
   const pageHeight = PAPER.LEGAL.height;
   
-  // Horizontal bar (bottom)
-  doc.roundedRect(pageWidth - cornerSize * 2, pageHeight - 8, cornerSize * 2, 8, 2, 2, 'FD');
-  // Vertical bar (right)
-  doc.roundedRect(pageWidth - 8, pageHeight - cornerSize * 2, 8, cornerSize * 2, 2, 2, 'FD');
+  // Corner margins (in cm converted to pt)
+  const marginTop = 0.5 * 28.35; // 0.5 cm from top
+  const marginLeft = 0.5 * 28.35; // 0.5 cm from left
+  const marginBottom = 0.3 * 28.35; // 0.3 cm from bottom
+  
+  // BACKGROUND FIRST: Subtle diagonal lines (white with light shadow)
+  // Draw this FIRST so corners appear on top
+  
+  // First pass: Light gray shadow (slightly offset)
+  doc.setDrawColor(220, 220, 220); // Very light gray for shadow
+  doc.setLineWidth(0.3);
+  doc.saveGraphicsState();
+  (doc as any).setGState((doc as any).GState({ opacity: 0.15 })); // Very subtle
+  const spacing = 60;
+  for (let offset = -pageHeight; offset < pageWidth + pageHeight; offset += spacing) {
+    doc.line(offset + 1, pageHeight + 1, offset + pageHeight + 1, 1); // Shadow offset
+  }
+  
+  // Second pass: White lines on top
+  doc.setDrawColor(255, 255, 255); // White
+  doc.setLineWidth(0.5);
+  (doc as any).setGState((doc as any).GState({ opacity: 0.08 })); // Super tipis
+  for (let offset = -pageHeight; offset < pageWidth + pageHeight; offset += spacing) {
+    doc.line(offset, pageHeight, offset + pageHeight, 0);
+  }
+  
+  // Reset opacity for corners and content
+  doc.restoreGraphicsState();
+  
+  // TOP-LEFT CORNER: Blue trapezoid + Orange accent (SMALLER & with margins)
+  const blueWidth = 170; // Horizontal width
+  const blueHeight = 30; // Reduced from 50px to 30px
+  const orangeHeight = 15; // Reduced from 30px to 15px
+  
+  // Blue angular trapezoid shape (#246A96) - with margins
+  doc.setFillColor(36, 106, 150); // #246A96
+  // Draw as filled rectangle + triangle to form trapezoid (with margins)
+  doc.rect(marginLeft, marginTop, blueWidth - 20, blueHeight, 'F'); // Main rectangle
+  doc.triangle(marginLeft + blueWidth - 20, marginTop, marginLeft + blueWidth, marginTop, marginLeft + blueWidth - 20, marginTop + blueHeight, 'F'); // Angled edge
+  
+  // Add white text inside blue shape (11pt bold)
+  doc.setTextColor(255, 255, 255); // White text
+  doc.setFontSize(11); // Larger, more readable
+  doc.setFont("times", "bold");
+  doc.text("Laporan", marginLeft + 10, marginTop + 13); // Line 1
+  doc.text("Guru Wali", marginLeft + 10, marginTop + 23); // Line 2
+  
+  // Reset text color to black for rest of document
+  doc.setTextColor(0, 0, 0);
+  
+  // Orange accent below (#FEBD59) - with margins
+  doc.setFillColor(254, 189, 89); // #FEBD59  
+  const orangeWidth = blueWidth * 0.55; // Proportional to blue
+  doc.rect(marginLeft, marginTop + blueHeight, orangeWidth - 15, orangeHeight, 'F'); // Main rectangle
+  doc.triangle(marginLeft + orangeWidth - 15, marginTop + blueHeight, marginLeft + orangeWidth, marginTop + blueHeight, marginLeft + orangeWidth - 15, marginTop + blueHeight + orangeHeight, 'F'); // Angled edge
+  
+  // BOTTOM-RIGHT CORNER: Mirrored design (with margin, no text)
+  // Blue angular shape (flipped)
+  doc.setFillColor(36, 106, 150);
+  doc.rect(pageWidth - blueWidth + 20 - marginLeft, pageHeight - blueHeight - marginBottom, blueWidth - 20, blueHeight, 'F'); // Main rectangle
+  doc.triangle(pageWidth - blueWidth + 20 - marginLeft, pageHeight - blueHeight - marginBottom, pageWidth - blueWidth + 20 - marginLeft, pageHeight - marginBottom, pageWidth - blueWidth - marginLeft, pageHeight - marginBottom, 'F'); // Angled edge
+  
+  // Orange accent (flipped)
+  doc.setFillColor(254, 189, 89);
+  doc.rect(pageWidth - orangeWidth + 15 - marginLeft, pageHeight - blueHeight - orangeHeight - marginBottom, orangeWidth - 15, orangeHeight, 'F'); // Main rectangle
+  doc.triangle(pageWidth - orangeWidth + 15 - marginLeft, pageHeight - blueHeight - orangeHeight - marginBottom, pageWidth - orangeWidth + 15 - marginLeft, pageHeight - blueHeight - marginBottom, pageWidth - orangeWidth - marginLeft, pageHeight - blueHeight - marginBottom, 'F'); // Angled edge
 }
 
 /**
@@ -412,12 +492,12 @@ function addDecorativeCorners(doc: jsPDF): void {
  * with leftMargin and indent variables throughout (~600 lines)
  * Current fix: Top margin and header positioning corrected
  */
-function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
+function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string): void {
   // ==========================================
   // PAGE 1: SOP GURU WALI - Dasar Hukum & Ruang Lingkup
   // ==========================================
   doc.addPage();
-  addDecorativeCorners(doc); // Add decorative corners
+  addDecorativeCorners(doc);
   
   let yPos = MARGINS.top;
   const centerX = PAPER.LEGAL.width / 2;
@@ -433,9 +513,11 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   
   doc.setFontSize(FONTS.body);
   doc.setFont("times", "normal");
-  doc.text(`Satuan Pendidikan: ${schoolName}`, leftMargin, yPos);
+  doc.text(`Satuan Pendidikan: ${schoolName}`, centerX, yPos, { align: "center" });
   yPos += FONTS.body * LINE_SPACING;
-  doc.text(`Tahun Ajaran: ${tahunAjaran}`, leftMargin, yPos);
+  doc.text(`Jenjang Sekolah: SMP`, centerX, yPos, { align: "center" });
+  yPos += FONTS.body * LINE_SPACING;
+  doc.text(`Tahun Ajaran: ${tahunAjaran}`, centerX, yPos, { align: "center" });
   yPos += FONTS.body * 2;
   
   // I. Dasar Hukum
@@ -443,18 +525,19 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   doc.text("I. Dasar Hukum", leftMargin, yPos);
   yPos += FONTS.body * LINE_SPACING;
   doc.setFont("times", "normal");
-  doc.text("1. Permendikdasmen No. 11 Tahun 2025 tentang Pemenuhan Beban Kerja", indent, yPos);
-  yPos += FONTS.body * LINE_SPACING;
-  doc.text("   Guru", indent, yPos);
-  yPos += FONTS.body * LINE_SPACING;
+  const item1 = "1. Permendikdasmen No. 11 Tahun 2025 tentang Pemenuhan Beban Kerja Guru";
+  const item1Lines = doc.splitTextToSize(item1, USABLE_WIDTH - 15);
+  doc.text(item1Lines, indent, yPos);
+  yPos += item1Lines.length * FONTS.body * LINE_SPACING;
   doc.text("2. Pasal 9 ayat (1-5): Kewajiban dan ruang lingkup tugas Guru Wali", indent, yPos);
   yPos += FONTS.body * LINE_SPACING;
   doc.text("3. Pasal 14: Ekuivalensi tugas Guru Wali setara 2 JP per minggu", indent, yPos);
   yPos += FONTS.body * LINE_SPACING;
-  doc.text("4. Pasal 17 dan 18: Penetapan, pelaksanaan, dan penghitungan beban", indent, yPos);
+  const item4 = "4. Pasal 17 dan 18: Penetapan, pelaksanaan, dan penghitungan beban kerja";
+  const item4Lines = doc.splitTextToSize(item4, USABLE_WIDTH - 15);
+  doc.text(item4Lines, indent, yPos);
+  yPos += item4Lines.length * FONTS.body * LINE_SPACING;
   yPos += FONTS.body * LINE_SPACING;
-  doc.text("   kerja", indent, yPos);
-  yPos += FONTS.body * 2;
   
   // II. Pengertian
   doc.setFont("times", "bold");
@@ -564,12 +647,15 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
   // PAGE 2: Prosedur Pelaksanaan (Table)
   // ==========================================
   doc.addPage();
-  addDecorativeCorners(doc); // Add decorative corners
+  addDecorativeCorners(doc);
   yPos = MARGINS.top;
   
   doc.setFont("times", "bold");
   doc.text("2. Pelaksanaan Tugas", leftMargin, yPos);
   yPos += FONTS.body * LINE_SPACING * 1.5;
+  
+  // IMPORTANT: Set font size BEFORE table to ensure proper rendering
+  doc.setFontSize(FONTS.body); // Ensure 12pt before table
   
   // Table for Kegiatan - use full USABLE_WIDTH with proper margins
   autoTable(doc, {
@@ -587,11 +673,11 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
     headStyles: { 
       fillColor: [198, 224, 180],
       textColor: [0, 0, 0],
-      fontSize: 10,
+      fontSize: 14,
       fontStyle: "bold",
       font: "times"
     },
-    bodyStyles: { fontSize: 9, font: "times" },
+    bodyStyles: { fontSize: 12, font: "times" },
     columnStyles: {
       0: { cellWidth: 25 },  // No - narrower
       1: { cellWidth: 'auto' },  // Kegiatan - auto width
@@ -602,7 +688,10 @@ function addSOPPages(doc: jsPDF, schoolName: string, tahunAjaran: string) {
     tableWidth: 'auto'
   });
   
-  yPos = (doc as any).lastAutoTable.finalY + 10;
+  yPos = (doc as any).lastAutoTable.finalY + (FONTS.body * LINE_SPACING * 2);
+  
+  // IMPORTANT: Reset font size after autoTable (autoTable changes it)
+  doc.setFontSize(FONTS.body); // Reset to 12pt
   
   // VI. Evaluasi dan Pelaporan
   doc.setFont("times", "bold");
@@ -661,7 +750,7 @@ function checkPageBreak(doc: jsPDF, currentY: number, requiredSpace: number): nu
   const maxY = PAPER.LEGAL.height - MARGINS.bottom;
   if (currentY + requiredSpace > maxY) {
     doc.addPage();
-    addDecorativeCorners(doc); // Add corners to new page
+    addDecorativeCorners(doc);
     return MARGINS.top;
   }
   return currentY;
@@ -686,39 +775,99 @@ function addBodyText(doc: jsPDF, text: string, x: number, y: number, maxWidth?: 
 
 /**
  * MODULAR SECTION 1: Add Cover Page
+ * Supports dual cover system: simple (text-only) or illustration (image + text)
  */
 function addSemesterCoverPage(
   doc: jsPDF,
-  semester: string,
-  academicYear: string,
-  teacherName: string,
-  schoolName: string,
-  totalStudents: number
+  options: CoverOptions
 ): void {
   // NO decorative corners on cover page (page 1 only)
-  
-  let yPos = PAPER.LEGAL.height / 2 - 60; // Center vertically
   const centerX = PAPER.LEGAL.width / 2;
   
-  // Title - 14pt bold, KAPITAL
+  if (options.type === 'illustration' && options.illustrationUrl) {
+    // ==========================================
+    // ILLUSTRATION COVER (Future implementation)
+    // ==========================================
+    // TODO Phase 2: Load image from R2, add as background
+    // For now, fallback to simple cover
+    console.log('Illustration cover requested but not yet implemented. Using simple cover.');
+    addSimpleCover(doc, options, centerX);
+    
+  } else {
+    // ==========================================
+    // SIMPLE TEXT COVER (Current default)
+    // ==========================================
+    addSimpleCover(doc, options, centerX);
+  }
+}
+
+/**
+ * Helper: Render simple text-based cover
+ */
+function addSimpleCover(doc: jsPDF, options: CoverOptions, centerX: number): void {
+  let yPos = PAPER.LEGAL.height / 2 - 150; // Start higher to accommodate logos
+  
+  // ==========================================
+  // LOGO SECTION (Optional - uploaded in settings)
+  // ==========================================
+  const hasLogoDinas = !!options.logoDinasPendidikan;
+  const hasLogoSekolah = !!options.logoSekolah;
+  const logoHeight = 80; // Standard logo height in pt
+  const logoSpacing = 30; // Space between logos if side by side
+  
+  if (hasLogoDinas || hasLogoSekolah) {
+    try {
+      if (hasLogoDinas && hasLogoSekolah) {
+        // CASE 1: Both logos - side by side
+        const totalWidth = logoHeight * 2 + logoSpacing;
+        const startX = centerX - totalWidth / 2;
+        
+        // Left logo (Dinas Pendidikan)
+        doc.addImage(options.logoDinasPendidikan!, 'PNG', startX, yPos, logoHeight, logoHeight);
+        
+        // Right logo (Sekolah)
+        doc.addImage(options.logoSekolah!, 'PNG', startX + logoHeight + logoSpacing, yPos, logoHeight, logoHeight);
+        
+      } else if (hasLogoDinas) {
+        // CASE 2: Only Dinas logo - centered
+        doc.addImage(options.logoDinasPendidikan!, 'PNG', centerX - logoHeight / 2, yPos, logoHeight, logoHeight);
+        
+      } else if (hasLogoSekolah) {
+        // CASE 3: Only School logo - centered
+        doc.addImage(options.logoSekolah!, 'PNG', centerX - logoHeight / 2, yPos, logoHeight, logoHeight);
+      }
+      
+      yPos += logoHeight + 40; // Move down after logos (40pt spacing)
+    } catch (error) {
+      console.error('Error adding logos to cover:', error);
+      // Continue without logos if error
+    }
+  } else {
+    // No logos - adjust starting position
+    yPos = PAPER.LEGAL.height / 2 - 60;
+  }
+  
+  // ==========================================
+  // TITLE SECTION
+  // ==========================================
   doc.setFontSize(FONTS.cover);
   doc.setFont("times", "bold");
   doc.text("LAPORAN PEMANTAUAN GURU WALI", centerX, yPos, { align: "center" });
   yPos += FONTS.cover * 1.5;
   
-  doc.text(`SEMESTER ${semester.toUpperCase()}`, centerX, yPos, { align: "center" });
+  doc.text(`SEMESTER ${options.semester.toUpperCase()}`, centerX, yPos, { align: "center" });
   yPos += FONTS.cover * 1.2;
-  doc.text(`TAHUN AJARAN ${academicYear}`, centerX, yPos, { align: "center" });
+  doc.text(`TAHUN AJARAN ${options.academicYear}`, centerX, yPos, { align: "center" });
   yPos += FONTS.body * 3;
   
   // Body info - 12pt normal
   doc.setFontSize(FONTS.body);
   doc.setFont("times", "normal");
-  doc.text(schoolName, centerX, yPos, { align: "center" });
+  doc.text(options.schoolName, centerX, yPos, { align: "center" });
   yPos += FONTS.body * LINE_SPACING;
-  doc.text(`Guru Wali: ${teacherName}`, centerX, yPos, { align: "center" });
+  doc.text(`Guru Wali: ${options.teacherName}`, centerX, yPos, { align: "center" });
   yPos += FONTS.body * LINE_SPACING;
-  doc.text(`Total Siswa Dampingan: ${totalStudents} siswa`, centerX, yPos, { align: "center" });
+  doc.text(`Total Siswa Dampingan: ${options.totalStudents} siswa`, centerX, yPos, { align: "center" });
   yPos += FONTS.body * 3;
   
   const today = new Date().toLocaleDateString("id-ID", {
@@ -933,6 +1082,7 @@ function addLampiranD(
   students: StudentData[],
   semester: string,
   academicYear: string,
+  nipNuptk: string,
   meetingSummary?: MeetingSummaryEntry[]
 ): void {
   doc.addPage();
@@ -1058,23 +1208,31 @@ function addLampiranD(
     yPos += (recLines.length * FONTS.body * LINE_SPACING);
   });
   
-  // Add signature section (1 line space, then signature fields)
-  yPos += FONTS.body * LINE_SPACING; // 1 blank line
-  yPos = checkPageBreak(doc, yPos, 80); // Ensure space for signature
+  // Add formal signature section (without Kepsek column)
+  yPos += FONTS.body * LINE_SPACING * 2; // 2 blank lines
+  yPos = checkPageBreak(doc, yPos, 100); // Ensure space for signature
   
   doc.setFontSize(FONTS.body);
   doc.setFont("times", "normal");
   
-  doc.text("Nama", MARGINS.left, yPos);
-  doc.text(": .............................................................................................​", MARGINS.left + 100, yPos);
-  yPos += FONTS.body * LINE_SPACING * 2;
+  // Location and date on the right
+  const today = new Date().toLocaleDateString('id-ID', { 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  });
+  const rightX = PAPER.LEGAL.width - MARGINS.right - 150;
+  doc.text(`....................., ${today}`, rightX, yPos);
+  yPos += FONTS.body * LINE_SPACING;
   
-  doc.text("Tanda Tangan", MARGINS.left, yPos);
-  doc.text(": .............................................................................................​", MARGINS.left + 100, yPos);
-  yPos += FONTS.body * LINE_SPACING * 2;
+  doc.setFont("times", "bold");
+  doc.text("Guru Wali,", rightX, yPos);
+  yPos += FONTS.body * LINE_SPACING * 4; // Space for signature
   
-  doc.text("Tanggal", MARGINS.left, yPos);
-  doc.text(": .............................................................................................​", MARGINS.left + 100, yPos);
+  doc.setFont("times", "normal");
+  doc.text(teacherName, rightX, yPos);
+  yPos += FONTS.body * LINE_SPACING;
+  doc.text(`NIP/NUPTK: ${nipNuptk || '-'}`, rightX, yPos);
 }
 
 // NOTE: Signature section removed - now integrated at end of Lampiran D
