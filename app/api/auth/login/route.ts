@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Get D1 binding directly from Cloudflare Pages context
     let db: any;
     try {
-      // @ts-expect-error
+      // @ts-ignore - Cloudflare context not available in types
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
