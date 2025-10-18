@@ -8,7 +8,6 @@ import { getCurrentUser } from "@/lib/auth/session";
 
 // Force dynamic rendering because we use cookies for session
 export const dynamic = "force-dynamic";
-export const runtime = "edge";
 
 export default async function MainLayout({
   children,
