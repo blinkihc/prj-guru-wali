@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SettingsData {
   email: string;
@@ -97,7 +97,7 @@ export function SettingsForm({ initialData, onSuccess }: SettingsFormProps) {
       }
 
       toast.success("Pengaturan berhasil disimpan!");
-      
+
       // Clear password fields
       setPasswordData({
         currentPassword: "",
@@ -225,9 +225,7 @@ export function SettingsForm({ initialData, onSuccess }: SettingsFormProps) {
                 <SelectItem value="SMP">
                   SMP (Sekolah Menengah Pertama)
                 </SelectItem>
-                <SelectItem value="SMA">
-                  SMA (Sekolah Menengah Atas)
-                </SelectItem>
+                <SelectItem value="SMA">SMA (Sekolah Menengah Atas)</SelectItem>
                 <SelectItem value="SMK">
                   SMK (Sekolah Menengah Kejuruan)
                 </SelectItem>

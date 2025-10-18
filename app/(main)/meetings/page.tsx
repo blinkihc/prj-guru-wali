@@ -36,14 +36,18 @@ export default function MeetingsPage() {
         // Fetch all meetings
         const meetingsRes = await fetch("/api/meetings");
         if (meetingsRes.ok) {
-          const meetingsData = (await meetingsRes.json()) as { meetings?: any[] };
+          const meetingsData = (await meetingsRes.json()) as {
+            meetings?: any[];
+          };
           setMeetings(meetingsData.meetings || []);
         }
 
         // Fetch students for mapping
         const studentsRes = await fetch("/api/students");
         if (studentsRes.ok) {
-          const studentsData = (await studentsRes.json()) as { students?: any[] };
+          const studentsData = (await studentsRes.json()) as {
+            students?: any[];
+          };
           setStudents(studentsData.students || []);
         }
       } catch (err) {

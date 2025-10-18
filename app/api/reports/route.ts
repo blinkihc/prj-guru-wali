@@ -2,15 +2,15 @@
 // Get list of generated reports (semester and individual)
 // Created: 2025-10-17
 
-import { type NextRequest, NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
-import { students, monthlyJournals, meetingLogs } from "@/drizzle/schema";
+import { type NextRequest, NextResponse } from "next/server";
+import { meetingLogs, monthlyJournals, students } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
+import { getDb } from "@/lib/db/client";
 
 export const runtime = "edge";
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = await getSession();
@@ -21,14 +21,16 @@ export async function GET(request: NextRequest) {
     // Get D1 binding (with fallback for local dev)
     let db;
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
 
       if (!env?.DB) {
         // Local dev fallback - return empty data
-        console.warn("[Reports] Running in local dev mode - returning empty data");
+        console.warn(
+          "[Reports] Running in local dev mode - returning empty data",
+        );
         return NextResponse.json({
           semesterReports: [],
           individualReports: [],
@@ -36,9 +38,11 @@ export async function GET(request: NextRequest) {
       }
 
       db = getDb(env.DB);
-    } catch (error) {
+    } catch (_error) {
       // Local dev or getRequestContext not available
-      console.warn("[Reports] Cloudflare context not available - returning empty data");
+      console.warn(
+        "[Reports] Cloudflare context not available - returning empty data",
+      );
       return NextResponse.json({
         semesterReports: [],
         individualReports: [],
@@ -53,24 +57,32 @@ export async function GET(request: NextRequest) {
 
     // Get journals for all students
     const studentIds = allStudents.map((s) => s.id);
-    const allJournals = studentIds.length > 0
-      ? await db
-          .select()
-          .from(monthlyJournals)
-          .where(
-            sql`${monthlyJournals.studentId} IN (${sql.join(studentIds.map((id) => sql`${id}`), sql`, `)})`
-          )
-      : [];
+    const allJournals =
+      studentIds.length > 0
+        ? await db
+            .select()
+            .from(monthlyJournals)
+            .where(
+              sql`${monthlyJournals.studentId} IN (${sql.join(
+                studentIds.map((id) => sql`${id}`),
+                sql`, `,
+              )})`,
+            )
+        : [];
 
     // Get meetings for all students
-    const allMeetings = studentIds.length > 0
-      ? await db
-          .select()
-          .from(meetingLogs)
-          .where(
-            sql`${meetingLogs.studentId} IN (${sql.join(studentIds.map((id) => sql`${id}`), sql`, `)})`
-          )
-      : [];
+    const allMeetings =
+      studentIds.length > 0
+        ? await db
+            .select()
+            .from(meetingLogs)
+            .where(
+              sql`${meetingLogs.studentId} IN (${sql.join(
+                studentIds.map((id) => sql`${id}`),
+                sql`, `,
+              )})`,
+            )
+        : [];
 
     // Build individual reports (one per student with data)
     const individualReports = allStudents
@@ -81,12 +93,17 @@ export async function GET(request: NextRequest) {
         return hasJournals || hasMeetings;
       })
       .map((student) => {
-        const studentJournals = allJournals.filter((j) => j.studentId === student.id);
-        const studentMeetings = allMeetings.filter((m) => m.studentId === student.id);
-        
+        const studentJournals = allJournals.filter(
+          (j) => j.studentId === student.id,
+        );
+        const studentMeetings = allMeetings.filter(
+          (m) => m.studentId === student.id,
+        );
+
         // Get latest journal for periode
-        const latestJournal = studentJournals.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        const latestJournal = studentJournals.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         )[0];
 
         return {
@@ -97,7 +114,8 @@ export async function GET(request: NextRequest) {
           periode: latestJournal?.monitoringPeriod || "Semua Periode",
           totalJournals: studentJournals.length,
           totalMeetings: studentMeetings.length,
-          fileSize: 15000 + (studentJournals.length * 500) + (studentMeetings.length * 300), // Estimated
+          fileSize:
+            15000 + studentJournals.length * 500 + studentMeetings.length * 300, // Estimated
           createdAt: new Date().toISOString(),
         };
       });
@@ -107,22 +125,29 @@ export async function GET(request: NextRequest) {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     const isGanjil = currentMonth >= 7 && currentMonth <= 12;
-    
-    const semesterReports = allStudents.length > 0 ? [
-      {
-        id: "semester-current",
-        title: `Laporan Semester ${isGanjil ? "Ganjil" : "Genap"} ${currentYear}/${currentYear + 1}`,
-        semester: isGanjil ? "Ganjil" : "Genap",
-        tahunAjaran: `${currentYear}/${currentYear + 1}`,
-        periodeStart: isGanjil ? `${currentYear}-07-01` : `${currentYear + 1}-01-01`,
-        periodeEnd: isGanjil ? `${currentYear}-12-31` : `${currentYear + 1}-06-30`,
-        totalStudents: allStudents.length,
-        totalJournals: allJournals.length,
-        totalMeetings: allMeetings.length,
-        fileSize: 50000 + (allStudents.length * 2000), // Estimated
-        createdAt: new Date().toISOString(),
-      },
-    ] : [];
+
+    const semesterReports =
+      allStudents.length > 0
+        ? [
+            {
+              id: "semester-current",
+              title: `Laporan Semester ${isGanjil ? "Ganjil" : "Genap"} ${currentYear}/${currentYear + 1}`,
+              semester: isGanjil ? "Ganjil" : "Genap",
+              tahunAjaran: `${currentYear}/${currentYear + 1}`,
+              periodeStart: isGanjil
+                ? `${currentYear}-07-01`
+                : `${currentYear + 1}-01-01`,
+              periodeEnd: isGanjil
+                ? `${currentYear}-12-31`
+                : `${currentYear + 1}-06-30`,
+              totalStudents: allStudents.length,
+              totalJournals: allJournals.length,
+              totalMeetings: allMeetings.length,
+              fileSize: 50000 + allStudents.length * 2000, // Estimated
+              createdAt: new Date().toISOString(),
+            },
+          ]
+        : [];
 
     return NextResponse.json({
       semesterReports,

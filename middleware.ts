@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
   // Get session cookie
   const session = request.cookies.get("guru_wali_session");
 
-  // If accessing login page and already logged in, redirect to dashboard
+  // If accessing login page and already logged in, redirect to home (dashboard)
   if (pathname.startsWith("/login") && session) {
     return NextResponse.redirect(new URL("/", request.url));
   }

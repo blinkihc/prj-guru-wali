@@ -23,7 +23,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
   const fetchSettings = async () => {
     try {
@@ -39,9 +39,7 @@ export default function SettingsPage() {
       setSettings(data);
     } catch (err) {
       console.error("Error fetching settings:", err);
-      setError(
-        err instanceof Error ? err.message : "Gagal memuat pengaturan",
-      );
+      setError(err instanceof Error ? err.message : "Gagal memuat pengaturan");
     } finally {
       setIsLoading(false);
     }

@@ -223,14 +223,16 @@ export function ImportDialog({
   };
 
   // Remove row
-  const handleRemoveRow = (index: number) => {
+  const _handleRemoveRow = (index: number) => {
     setParsedData((prev) => prev.filter((_, i) => i !== index));
   };
 
   const validCount = parsedData.filter(
     (row) => Array.isArray(row._errors) && row._errors.length === 0,
   ).length;
-  const errorCount = parsedData.filter((row) => Array.isArray(row._errors) && row._errors.length > 0).length;
+  const errorCount = parsedData.filter(
+    (row) => Array.isArray(row._errors) && row._errors.length > 0,
+  ).length;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

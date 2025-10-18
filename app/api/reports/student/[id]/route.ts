@@ -2,12 +2,17 @@
 // Generate full student PDF report with real database data
 // Updated: 2025-10-17 - Replaced mock data with real D1 database queries
 
+import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
-import { students, monthlyJournals, meetingLogs, interventions } from "@/drizzle/schema";
+import {
+  interventions,
+  meetingLogs,
+  monthlyJournals,
+  students,
+} from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
+import { getDb } from "@/lib/db/client";
 import { generateStudentReportPDF } from "@/lib/services/pdf-generator-edge";
 
 export const runtime = "edge";
@@ -32,7 +37,7 @@ export async function GET(
     // Get D1 binding (with fallback for local dev)
     let db;
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
@@ -46,7 +51,7 @@ export async function GET(
       }
 
       db = getDb(env.DB);
-    } catch (error) {
+    } catch (_error) {
       console.warn("[StudentReport] Cloudflare context not available");
       return NextResponse.json(
         { error: "Database not available" },
@@ -104,7 +109,9 @@ export async function GET(
       },
       journals.map((j) => ({
         id: j.id,
-        month: new Date(j.createdAt).toLocaleDateString("id-ID", { month: "long" }),
+        month: new Date(j.createdAt).toLocaleDateString("id-ID", {
+          month: "long",
+        }),
         year: new Date(j.createdAt).getFullYear(),
         academicProgress: j.academicDesc || "-",
         socialBehavior: j.characterDesc || "-",
@@ -127,7 +134,7 @@ export async function GET(
         result: i.status || "Dalam proses",
       })),
       teacherName,
-      schoolName
+      schoolName,
     );
 
     // Generate filename

@@ -9,7 +9,7 @@ import { getSession } from "@/lib/auth/session";
 
 export const runtime = "edge";
 
-// Mock data - empty for MVP v1.0.0  
+// Mock data - empty for MVP v1.0.0
 const mockStudents: Array<{
   id: string;
   userId: string;

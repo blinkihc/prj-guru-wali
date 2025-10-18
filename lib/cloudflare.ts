@@ -17,7 +17,7 @@ export interface CloudflareEnv {
 export function getCloudflareEnv(): CloudflareEnv | null {
   try {
     // Try to get from @cloudflare/next-on-pages
-    // @ts-ignore
+    // @ts-expect-error
     const { getRequestContext } = require("@cloudflare/next-on-pages");
     if (typeof getRequestContext === "function") {
       const ctx = getRequestContext();
@@ -30,9 +30,11 @@ export function getCloudflareEnv(): CloudflareEnv | null {
         };
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // @cloudflare/next-on-pages not available or getRequestContext failed
-    console.log("[Cloudflare] getRequestContext not available, trying globalThis");
+    console.log(
+      "[Cloudflare] getRequestContext not available, trying globalThis",
+    );
   }
 
   // Fallback: Check globalThis for bindings

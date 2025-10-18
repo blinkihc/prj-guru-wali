@@ -1,18 +1,21 @@
 // Login API route
 // Last updated: 2025-10-16
 
-import { type NextRequest, NextResponse } from "next/server";
 import { compare } from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { type NextRequest, NextResponse } from "next/server";
 import { users } from "@/drizzle/schema";
 import { createSession } from "@/lib/auth/session";
+import { getDb } from "@/lib/db/client";
 
 export const runtime = "edge";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as { email?: string; password?: string };
+    const body = (await request.json()) as {
+      email?: string;
+      password?: string;
+    };
     const { email, password } = body;
 
     // Validate input
@@ -26,11 +29,11 @@ export async function POST(request: NextRequest) {
     // Get D1 binding directly from Cloudflare Pages context
     let db: any;
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
-      
+
       if (!env?.DB) {
         console.error("[Login] D1 binding not found in request context");
         return NextResponse.json(
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
           { status: 503 },
         );
       }
-      
+
       console.log("[Login] Got D1 binding from request context");
       db = getDb(env.DB);
     } catch (error) {
@@ -74,7 +77,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session
-    await createSession(user.id, user.email, user.fullName, user.nipNuptk || undefined);
+    await createSession(
+      user.id,
+      user.email,
+      user.fullName,
+      user.nipNuptk || undefined,
+    );
 
     return NextResponse.json({
       success: true,

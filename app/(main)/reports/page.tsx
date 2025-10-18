@@ -54,9 +54,11 @@ interface IndividualReport {
 export default function ReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
   const [semesterReports, setSemesterReports] = useState<SemesterReport[]>([]);
-  const [individualReports, setIndividualReports] = useState<IndividualReport[]>([]);
+  const [individualReports, setIndividualReports] = useState<
+    IndividualReport[]
+  >([]);
 
   // Download semester report
   const handleDownloadSemester = async (report: SemesterReport) => {
@@ -124,7 +126,7 @@ export default function ReportsPage() {
     try {
       setIsLoading(true);
       const response = await fetch("/api/reports");
-      
+
       if (response.ok) {
         const data = (await response.json()) as {
           semesterReports: SemesterReport[];
@@ -143,7 +145,7 @@ export default function ReportsPage() {
   // Load data on mount
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [fetchReports]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;

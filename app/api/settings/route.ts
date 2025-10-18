@@ -1,12 +1,12 @@
 // Settings API - Get and update user profile & school data
 // Last updated: 2025-10-17
 
-import { type NextRequest, NextResponse } from "next/server";
-import { hash, compare } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
-import { users, schoolProfiles } from "@/drizzle/schema";
+import { type NextRequest, NextResponse } from "next/server";
+import { schoolProfiles, users } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
+import { getDb } from "@/lib/db/client";
 
 export const runtime = "edge";
 
@@ -14,7 +14,7 @@ export const runtime = "edge";
  * GET /api/settings
  * Get current user settings (profile + school data)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = await getSession();
@@ -25,14 +25,16 @@ export async function GET(request: NextRequest) {
     // Get D1 binding (with fallback for local dev)
     let db;
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
 
       if (!env?.DB) {
         // Local dev fallback - return empty/default data
-        console.warn("[Settings] Running in local dev mode - using default data");
+        console.warn(
+          "[Settings] Running in local dev mode - using default data",
+        );
         return NextResponse.json({
           email: "dev@example.com",
           fullName: "Development User",
@@ -44,9 +46,11 @@ export async function GET(request: NextRequest) {
       }
 
       db = getDb(env.DB);
-    } catch (error) {
+    } catch (_error) {
       // Local dev or getRequestContext not available
-      console.warn("[Settings] Cloudflare context not available - using default data");
+      console.warn(
+        "[Settings] Cloudflare context not available - using default data",
+      );
       return NextResponse.json({
         email: "dev@example.com",
         fullName: "Development User",
@@ -59,7 +63,6 @@ export async function GET(request: NextRequest) {
 
     // Production: Fetch from database
     try {
-
       // Get user data
       const [user] = await db
         .select()
@@ -150,27 +153,30 @@ export async function PUT(request: NextRequest) {
     // Get D1 binding (with fallback for local dev)
     let db;
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
 
       if (!env?.DB) {
         // Local dev fallback - just return success
-        console.warn("[Settings] Running in local dev mode - skipping database update");
+        console.warn(
+          "[Settings] Running in local dev mode - skipping database update",
+        );
         return NextResponse.json({ success: true });
       }
 
       db = getDb(env.DB);
-    } catch (error) {
+    } catch (_error) {
       // Local dev or getRequestContext not available
-      console.warn("[Settings] Cloudflare context not available - skipping database update");
+      console.warn(
+        "[Settings] Cloudflare context not available - skipping database update",
+      );
       return NextResponse.json({ success: true });
     }
 
     // Production: Update database
     try {
-
       // If password change requested, verify current password
       if (body.currentPassword && body.newPassword) {
         const [user] = await db
@@ -187,7 +193,10 @@ export async function PUT(request: NextRequest) {
         }
 
         // Verify current password
-        const isValid = await compare(body.currentPassword, user.hashedPassword);
+        const isValid = await compare(
+          body.currentPassword,
+          user.hashedPassword,
+        );
         if (!isValid) {
           return NextResponse.json(
             { error: "Password lama tidak sesuai" },

@@ -2,11 +2,11 @@
 // Returns: student counts, assessment stats, meeting counts
 // Last updated: 2025-10-17
 
+import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
+import { meetingLogs, monthlyJournals, students } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { students, monthlyJournals, meetingLogs } from "@/drizzle/schema";
-import { eq, and, gte, sql } from "drizzle-orm";
 
 export const runtime = "edge";
 
@@ -14,7 +14,7 @@ export const runtime = "edge";
  * GET /api/dashboard/stats
  * Get dashboard statistics for current user
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = await getSession();
@@ -24,14 +24,16 @@ export async function GET(request: NextRequest) {
 
     // Get D1 binding
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
 
       if (!env?.DB) {
         // Local dev fallback - return empty stats
-        console.warn("[DashboardStats] Running in local dev mode - returning empty stats");
+        console.warn(
+          "[DashboardStats] Running in local dev mode - returning empty stats",
+        );
         return NextResponse.json({
           totalStudents: 0,
           studentsAssessed: 0,
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1; // 1-12
-      
+
       // Calculate week start (Monday)
       const dayOfWeek = now.getDay();
       const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -125,9 +127,11 @@ export async function GET(request: NextRequest) {
         { status: 500 },
       );
     }
-  } catch (error) {
+  } catch (_error) {
     // Cloudflare context not available (local dev)
-    console.warn("[DashboardStats] Cloudflare context not available - returning empty stats");
+    console.warn(
+      "[DashboardStats] Cloudflare context not available - returning empty stats",
+    );
     return NextResponse.json({
       totalStudents: 0,
       studentsAssessed: 0,

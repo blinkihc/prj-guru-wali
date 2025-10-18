@@ -2,11 +2,11 @@
 // Returns: { hasProfile: boolean }
 // Last updated: 2025-10-17
 
+import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
+import { schoolProfiles } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { schoolProfiles } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
 
 export const runtime = "edge";
 
@@ -14,7 +14,7 @@ export const runtime = "edge";
  * GET /api/profile/check
  * Check if current user has completed setup (has school profile)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = await getSession();
@@ -25,14 +25,16 @@ export async function GET(request: NextRequest) {
     // Get D1 binding (with fallback for local dev)
     let hasProfile = false;
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
 
       if (!env?.DB) {
         // Local dev fallback - return false (show banner)
-        console.warn("[ProfileCheck] Running in local dev mode - returning false");
+        console.warn(
+          "[ProfileCheck] Running in local dev mode - returning false",
+        );
         return NextResponse.json({ hasProfile: false });
       }
 
@@ -44,8 +46,10 @@ export async function GET(request: NextRequest) {
         .limit(1);
 
       hasProfile = !!profile;
-    } catch (error) {
-      console.warn("[ProfileCheck] Cloudflare context not available - returning false");
+    } catch (_error) {
+      console.warn(
+        "[ProfileCheck] Cloudflare context not available - returning false",
+      );
       // Return false on error (safe default - show banner)
       hasProfile = false;
     }

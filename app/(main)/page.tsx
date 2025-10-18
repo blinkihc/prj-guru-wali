@@ -6,15 +6,21 @@
 
 "use client";
 
-import { BookOpen, MessageSquare, TrendingUp, Users, RefreshCw } from "lucide-react";
+import {
+  BookOpen,
+  MessageSquare,
+  RefreshCw,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { useEffect, useState } from "react";
+import { AssessmentChart } from "@/components/dashboard/assessment-chart";
+import { MeetingsChart } from "@/components/dashboard/meetings-chart";
+import { SetupBanner } from "@/components/dashboard/setup-banner";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedCard } from "@/components/ui/enhanced-card";
 import { SkeletonCard } from "@/components/ui/skeleton";
-import { SetupBanner } from "@/components/dashboard/setup-banner";
-import { AssessmentChart } from "@/components/dashboard/assessment-chart";
-import { MeetingsChart } from "@/components/dashboard/meetings-chart";
-import { Button } from "@/components/ui/button";
 
 interface DashboardStats {
   totalStudents: number;
@@ -44,7 +50,9 @@ export default function Home() {
       ]);
 
       if (profileRes.ok) {
-        const profileData = (await profileRes.json()) as { hasProfile?: boolean };
+        const profileData = (await profileRes.json()) as {
+          hasProfile?: boolean;
+        };
         setHasProfile(profileData.hasProfile ?? true);
       }
 
@@ -62,7 +70,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleRefresh = () => {
     fetchData();
@@ -84,7 +92,9 @@ export default function Home() {
           size="sm"
           className="gap-2"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+          />
           Refresh
         </Button>
       </div>
@@ -127,7 +137,9 @@ export default function Home() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.totalStudents ?? 0}</div>
+                <div className="text-2xl font-bold">
+                  {stats?.totalStudents ?? 0}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Siswa yang diampu
                 </p>
@@ -142,7 +154,9 @@ export default function Home() {
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.studentsAssessed ?? 0}</div>
+                <div className="text-2xl font-bold">
+                  {stats?.studentsAssessed ?? 0}
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Punya jurnal penilaian
                 </p>
@@ -157,7 +171,9 @@ export default function Home() {
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.meetingsThisWeek ?? 0}</div>
+                <div className="text-2xl font-bold">
+                  {stats?.meetingsThisWeek ?? 0}
+                </div>
                 <p className="text-xs text-muted-foreground">Log pertemuan</p>
               </CardContent>
             </EnhancedCard>
@@ -170,7 +186,9 @@ export default function Home() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats?.assessmentPercentage ?? 0}%</div>
+                <div className="text-2xl font-bold">
+                  {stats?.assessmentPercentage ?? 0}%
+                </div>
                 <p className="text-xs text-muted-foreground">Siswa dinilai</p>
               </CardContent>
             </EnhancedCard>

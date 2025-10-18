@@ -2,11 +2,11 @@
 // Last updated: 2025-10-17
 // Fixed: Now saves to D1 database (users + school_profiles)
 
-import { type NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
-import { users, schoolProfiles } from "@/drizzle/schema";
+import { type NextRequest, NextResponse } from "next/server";
+import { schoolProfiles, users } from "@/drizzle/schema";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getDb } from "@/lib/db/client";
 
 export const runtime = "edge";
 
@@ -40,14 +40,16 @@ export async function POST(request: NextRequest) {
     // Get D1 binding (with fallback for local dev)
     let db;
     try {
-      // @ts-ignore
+      // @ts-expect-error
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as any;
 
       if (!env?.DB) {
         // Local dev fallback - just return success
-        console.warn("[Setup] Running in local dev mode - skipping database save");
+        console.warn(
+          "[Setup] Running in local dev mode - skipping database save",
+        );
         return NextResponse.json({
           success: true,
           message: "Setup berhasil disimpan (dev mode)",
@@ -55,9 +57,11 @@ export async function POST(request: NextRequest) {
       }
 
       db = getDb(env.DB);
-    } catch (error) {
+    } catch (_error) {
       // Local dev or getRequestContext not available
-      console.warn("[Setup] Cloudflare context not available - skipping database save");
+      console.warn(
+        "[Setup] Cloudflare context not available - skipping database save",
+      );
       return NextResponse.json({
         success: true,
         message: "Setup berhasil disimpan (dev mode)",
@@ -102,7 +106,10 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log("[Setup] Data saved successfully for user:", currentUser.userId);
+      console.log(
+        "[Setup] Data saved successfully for user:",
+        currentUser.userId,
+      );
 
       return NextResponse.json({
         success: true,

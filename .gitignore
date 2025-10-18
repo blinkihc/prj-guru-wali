@@ -62,3 +62,8 @@ worker-configuration.d.ts
 
 # Testing dummy data (local only)
 /lib/testing/
+
+# Local development database (for seed testing)
+local-dev.db
+local-dev.db-*
+seed-data.sql
