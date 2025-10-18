@@ -25,9 +25,17 @@ export async function middleware(request: NextRequest) {
   // Get session cookie
   const session = request.cookies.get("guru_wali_session");
 
-  // If accessing login page and already logged in, redirect to home (dashboard)
+  // Handle root path - redirect based on authentication
+  if (pathname === "/") {
+    if (session) {
+      return NextResponse.redirect(new URL("/students", request.url));
+    }
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // If accessing login page and already logged in, redirect to students
   if (pathname.startsWith("/login") && session) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/students", request.url));
   }
 
   // Allow /setup page for logged-in users (they might need to complete setup)
