@@ -26,15 +26,8 @@ interface DummyDataModule {
   dummyMeetingSummary: MeetingSummaryEntry[];
 }
 
-// Import dummy data for local testing (file is in .gitignore)
-let dummyData: DummyDataModule | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  dummyData = require("@/lib/testing/dummy-data") as DummyDataModule;
-} catch (_e) {
-  // Dummy data not available (production or file doesn't exist)
-  dummyData = null;
-}
+// Dummy data is not used in production - always null
+const dummyData: DummyDataModule | null = null;
 
 export const runtime = "edge";
 
