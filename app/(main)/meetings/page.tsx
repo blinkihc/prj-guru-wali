@@ -39,7 +39,7 @@ export default function MeetingsPage() {
         const meetingsRes = await fetch("/api/meetings");
         if (meetingsRes.ok) {
           const meetingsData = (await meetingsRes.json()) as {
-            meetings?: any[];
+            meetings?: MeetingLog[];
           };
           setMeetings(meetingsData.meetings || []);
         }
@@ -48,7 +48,7 @@ export default function MeetingsPage() {
         const studentsRes = await fetch("/api/students");
         if (studentsRes.ok) {
           const studentsData = (await studentsRes.json()) as {
-            students?: any[];
+            students?: Student[];
           };
           setStudents(studentsData.students || []);
         }

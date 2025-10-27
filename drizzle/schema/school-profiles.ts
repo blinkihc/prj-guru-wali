@@ -1,5 +1,5 @@
 // SchoolProfile table schema - Data sekolah
-// Last updated: 2025-10-12
+// Last updated: 2025-10-19 - Added logo URL fields for settings
 
 import { sql } from "drizzle-orm";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
@@ -17,6 +17,8 @@ export const schoolProfiles = sqliteTable("school_profiles", {
   cityDistrict: text("city_district").notNull(),
   address: text("address"), // Optional
   schoolEmail: text("school_email"), // Optional
+  logoDinasUrl: text("logo_dinas_url"),
+  logoSekolahUrl: text("logo_sekolah_url"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 

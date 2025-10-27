@@ -1,7 +1,8 @@
 // Profile check API - Check if user has completed setup
 // Returns: { hasProfile: boolean }
-// Last updated: 2025-10-17
+// Last updated: 2025-10-20 - Gunakan tipe env terdefinisi untuk hentikan penggunaan any
 
+import type { D1Database } from "@cloudflare/workers-types";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { schoolProfiles } from "@/drizzle/schema";
@@ -25,10 +26,10 @@ export async function GET(_request: NextRequest) {
     // Get D1 binding (with fallback for local dev)
     let hasProfile = false;
     try {
-      // @ts-ignore - Cloudflare context not available in types
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      type ProfileEnv = { DB?: D1Database };
+      const env = ctx?.env as ProfileEnv | undefined;
 
       if (!env?.DB) {
         // Local dev fallback - return false (show banner)

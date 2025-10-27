@@ -19,4 +19,15 @@ const nextConfig: NextConfig = {
   },
 };
 
+// Setup Cloudflare bindings for local development
+// This allows getRequestContext() to work with Wrangler D1
+if (process.env.NODE_ENV === "development") {
+  // Use dynamic import without top-level await
+  import("@cloudflare/next-on-pages/next-dev").then(({ setupDevPlatform }) => {
+    setupDevPlatform().catch((e) =>
+      console.error("Failed to setup dev platform:", e),
+    );
+  });
+}
+
 export default nextConfig;

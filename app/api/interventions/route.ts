@@ -1,6 +1,7 @@
 // API Route: /api/interventions
 // Handle Intervention CRUD operations
 // Created: 2025-01-14
+// Updated: 2025-10-20 - Tambah tipe payload untuk hilangkan any pada handler POST
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -9,7 +10,7 @@ import { getSession } from "@/lib/auth/session";
 export const runtime = "edge";
 
 // MVP v1.0.0: Start with empty data - users create their own
-const mockInterventions: Array<{
+interface Intervention {
   id: string;
   studentId: string;
   title: string;
@@ -22,7 +23,21 @@ const mockInterventions: Array<{
   notes: string | null;
   createdAt: string;
   updatedAt: string;
-}> = [];
+}
+
+interface InterventionPayload {
+  studentId: string;
+  title: string;
+  issue: string;
+  goal: string;
+  actionSteps: string;
+  status?: Intervention["status"];
+  startDate: string;
+  endDate?: string | null;
+  notes?: string | null;
+}
+
+const mockInterventions: Intervention[] = [];
 
 /**
  * POST /api/interventions
@@ -36,10 +51,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as any;
+    const body = (await request.json()) as Partial<InterventionPayload> | null;
 
     // Validate required fields
-    if (!body.studentId) {
+    if (!body?.studentId) {
       return NextResponse.json(
         { error: "studentId is required" },
         { status: 400 },

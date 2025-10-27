@@ -2,6 +2,7 @@
 // Returns: student counts, assessment stats, meeting counts
 // Last updated: 2025-10-17
 
+import type { D1Database } from "@cloudflare/workers-types";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { meetingLogs, monthlyJournals, students } from "@/drizzle/schema";
@@ -24,10 +25,13 @@ export async function GET(_request: NextRequest) {
 
     // Get D1 binding
     try {
-      // @ts-ignore - Cloudflare context not available in types
-      const { getRequestContext } = await import("@cloudflare/next-on-pages");
-      const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      const requestContextModule = (await import(
+        "@cloudflare/next-on-pages"
+      )) as {
+        getRequestContext: () => { env?: { DB?: D1Database } };
+      };
+      const ctx = requestContextModule.getRequestContext();
+      const env = ctx?.env;
 
       if (!env?.DB) {
         // Local dev fallback - return empty stats

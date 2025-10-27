@@ -40,18 +40,18 @@ export default function JournalsPage() {
         const journalsRes = await fetch("/api/journals");
         if (journalsRes.ok) {
           const journalsData = (await journalsRes.json()) as {
-            journals?: any[];
+            journals?: MonthlyJournal[];
           };
-          setJournals(journalsData.journals || []);
+          setJournals(journalsData.journals ?? []);
         }
 
         // Fetch students for mapping
         const studentsRes = await fetch("/api/students");
         if (studentsRes.ok) {
           const studentsData = (await studentsRes.json()) as {
-            students?: any[];
+            students?: Student[];
           };
-          setStudents(studentsData.students || []);
+          setStudents(studentsData.students ?? []);
         }
       } catch (err) {
         console.error("Fetch error:", err);

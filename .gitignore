@@ -41,39 +41,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Cloudflare
-.wrangler/
-.dev.vars
-worker-configuration.d.ts
 
-# Database
-/drizzle/migrations/*.sql
-!drizzle/migrations/.gitkeep
-
-# Documentation (local only)
-/docs/
-
-# Scripts (contains user credentials, local only)
-/scripts/
 
 # SQL files (may contain sensitive data)
-/*.sql
-!schema.sql
+# Temporarily disabled for development/debugging
+# /*.sql
+# !schema.sql
 
-# Testing dummy data (local only)
-/lib/testing/
+# Documentation (stored externally in d:\Code\docs\)
+/docs/
+AGENTS.md
+Prompt-Workflow-Git-Branch.md
+TASKS.md
 
-# Local development database (for seed testing)
-local-dev.db
-local-dev.db-*
-seed-data.sql
+# Wrangler local state
+.wrangler/
+.dev.vars
 
-# Seed scripts (local development only)
-/drizzle/seed-dev.ts
-/drizzle/test-seed.ts
-/drizzle/sync-to-wrangler.ts
-/drizzle/check-wrangler-db.ts
-/drizzle/init-wrangler-tables.ts
-/drizzle/recreate-wrangler-tables.ts
-/drizzle/insert-dev-user.sql
-drizzle.config.local.ts

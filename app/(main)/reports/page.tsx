@@ -1,6 +1,6 @@
 // Reports Page - Archive System
 // Created: 2025-01-14
-// Updated: 2025-10-17 - Replaced mock data with real API data
+// Last updated: 2025-10-19 - Stabilized data fetch with useCallback
 // Shows archived semester reports and individual student reports from database
 
 "use client";
@@ -8,7 +8,7 @@
 export const runtime = "edge";
 
 import { Calendar, Download, FileText, Trash2, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -124,7 +124,7 @@ export default function ReportsPage() {
   };
 
   // Fetch reports data from API
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await fetch("/api/reports");
@@ -142,7 +142,7 @@ export default function ReportsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Load data on mount
   useEffect(() => {

@@ -2,21 +2,52 @@
 
 ## File Template CSV
 
-Download: [student-import-template.csv](./student-import-template.csv)
+Download: [students-import-template.csv](./students-import-template.csv)
 
 ---
 
 ## Format Kolom
 
-| Nama Kolom | Deskripsi | Wajib? | Contoh |
-|------------|-----------|--------|--------|
-| **fullName** | Nama lengkap siswa | ✅ Ya | Ahmad Fadil |
-| **nisn** | Nomor Induk Siswa Nasional (10 digit) | ❌ Tidak | 0012345678 |
-| **classroom** | Kelas siswa | ❌ Tidak | 7A, 8B, 9C |
-| **gender** | Jenis kelamin (L/P) | ❌ Tidak | L atau P |
-| **parentName** | Nama orang tua/wali | ❌ Tidak | Bapak Ahmad |
-| **parentContact** | Nomor WhatsApp orang tua (format: 628xxx) | ❌ Tidak | 628123456789 |
-| **specialNotes** | Catatan khusus | ❌ Tidak | Alergi makanan |
+**Catatan Penting:**
+- ⚠️ Template CSV berisi **29 kolom biodata utama** + 2 kolom placeholder
+- ⚠️ **Photo URL** dan **Social Media** TIDAK termasuk dalam CSV
+- Tambahkan Photo URL dan Social Media melalui fitur **Edit Siswa** di UI setelah import
+
+### Kolom Utama
+
+| Kategori | Nama Kolom | Deskripsi | Wajib? |
+|----------|------------|-----------|--------|
+| **Identitas** | fullName | Nama lengkap siswa | ✅ Ya |
+| | nis | Nomor Induk Sekolah | ❌ Tidak |
+| | nisn | NISN (10 digit) | ❌ Tidak |
+| | classroom | Kelas | ❌ Tidak |
+| | gender | Jenis kelamin (L/P) | ❌ Tidak |
+| | birthPlace | Tempat lahir | ❌ Tidak |
+| | birthDate | Tanggal lahir (YYYY-MM-DD) | ❌ Tidak |
+| | religion | Agama | ❌ Tidak |
+| | bloodType | Golongan darah | ❌ Tidak |
+| | economicStatus | Status ekonomi | ❌ Tidak |
+| | address | Alamat lengkap | ❌ Tidak |
+| | phoneNumber | Nomor HP siswa (628xxx) | ❌ Tidak |
+| **Minat** | dream | Cita-cita | ❌ Tidak |
+| | extracurricular | Ekstrakurikuler | ❌ Tidak |
+| | hobby | Hobi | ❌ Tidak |
+| **Orang Tua** | parentName | Nama orang tua/wali | ❌ Tidak |
+| | parentContact | Kontak orang tua (628xxx) | ❌ Tidak |
+| | fatherName | Nama ayah | ❌ Tidak |
+| | fatherJob | Pekerjaan ayah | ❌ Tidak |
+| | fatherIncome | Penghasilan ayah (angka) | ❌ Tidak |
+| | motherName | Nama ibu | ❌ Tidak |
+| | motherJob | Pekerjaan ibu | ❌ Tidak |
+| | motherIncome | Penghasilan ibu (angka) | ❌ Tidak |
+| **Kesehatan** | healthHistoryPast | Riwayat kesehatan dulu | ❌ Tidak |
+| | healthHistoryCurrent | Riwayat kesehatan sekarang | ❌ Tidak |
+| | healthHistoryOften | Riwayat kesehatan sering | ❌ Tidak |
+| **Karakter** | characterStrength | Kekuatan karakter | ❌ Tidak |
+| | characterImprovement | Perlu peningkatan | ❌ Tidak |
+| **Lainnya** | specialNotes | Catatan khusus | ❌ Tidak |
+| **Placeholder** | Alamat Email Siswa | Email siswa (opsional) | ❌ Tidak |
+| | Nomor HP Alternatif | HP alternatif (opsional) | ❌ Tidak |
 
 ---
 
@@ -61,13 +92,12 @@ Download: [student-import-template.csv](./student-import-template.csv)
 
 ## Contoh Data Valid
 
-```csv
-fullName,nisn,classroom,gender,parentName,parentContact,specialNotes
-Ahmad Fadil,0012345678,7A,L,Bapak Ahmad,628123456789,Alergi makanan laut
-Siti Nurhaliza,0023456789,7A,P,Ibu Siti,628234567890,
-Budi Santoso,,7B,L,Bapak Budi,628345678901,
-Dewi Lestari,0045678901,,P,,,
-```
+Lihat file [students-import-template.csv](./students-import-template.csv) untuk contoh lengkap dengan 29 kolom biodata.
+
+**Catatan:**
+- Kolom yang tidak diisi bisa dikosongkan atau diisi dengan tanda "-"
+- Tanggal harus format `YYYY-MM-DD` atau `DD/MM/YYYY` (akan dinormalisasi otomatis)
+- Penghasilan harus angka tanpa titik/koma pemisah ribuan
 
 ---
 
@@ -84,6 +114,7 @@ Dewi Lestari,0045678901,,P,,,
 - Jangan menggunakan format nomor selain 628xxx
 - Jangan gunakan spasi atau simbol di nomor telepon
 - Jangan kosongkan kolom fullName (wajib diisi)
+- Jangan isi Photo URL dan Social Media di CSV (tidak akan diproses)
 
 ---
 
@@ -91,7 +122,7 @@ Dewi Lestari,0045678901,,P,,,
 
 1. **Download Template**
    - Klik tombol "Download Template CSV"
-   - File akan terdownload dengan nama `student-import-template.csv`
+   - File akan terdownload dengan nama `students-import-template.csv`
 
 2. **Isi Data**
    - Buka file dengan Excel, Google Sheets, atau text editor

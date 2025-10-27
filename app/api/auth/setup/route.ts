@@ -1,12 +1,13 @@
 // Setup API route - Save wizard data
-// Last updated: 2025-10-17
-// Fixed: Now saves to D1 database (users + school_profiles)
+// Last updated: 2025-10-19
+// Updated: Replaced ts-ignore, added explicit Cloudflare context typing
 
+import type { D1Database } from "@cloudflare/workers-types";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { schoolProfiles, users } from "@/drizzle/schema";
 import { getCurrentUser } from "@/lib/auth/session";
-import { getDb } from "@/lib/db/client";
+import { type Database, getDb } from "@/lib/db/client";
 
 export const runtime = "edge";
 
@@ -38,12 +39,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get D1 binding (with fallback for local dev)
-    let db;
+    let db: Database | undefined;
     try {
-      // @ts-ignore - Cloudflare context not available in types
+      // @ts-expect-error - Cloudflare context types unavailable in Node runtime
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      const env = ctx?.env as { DB?: D1Database } | undefined;
 
       if (!env?.DB) {
         // Local dev fallback - just return success

@@ -1,0 +1,12 @@
+-- Check row counts for users
+SELECT COUNT(*) as users_count FROM users;
+-- Check row counts for school_profiles
+SELECT COUNT(*) as school_profiles_count FROM school_profiles;
+-- Check row counts for students
+SELECT COUNT(*) as students_count FROM students;
+-- Check row counts for meeting_logs
+SELECT COUNT(*) as meeting_logs_count FROM meeting_logs;
+-- Check row counts for monthly_journals
+SELECT COUNT(*) as monthly_journals_count FROM monthly_journals;
+-- Check row counts for interventions
+SELECT COUNT(*) as interventions_count FROM interventions;

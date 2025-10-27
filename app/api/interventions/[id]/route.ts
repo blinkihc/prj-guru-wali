@@ -1,6 +1,7 @@
 // API Route: /api/interventions/[id]
 // Handle individual intervention operations
 // Created: 2025-01-14
+// Updated: 2025-10-20 - Tambah tipe payload untuk hilangkan any pada handler PUT
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -9,7 +10,7 @@ import { getSession } from "@/lib/auth/session";
 export const runtime = "edge";
 
 // Mock data - empty for MVP v1.0.0 (each route maintains its own)
-const mockInterventions: Array<{
+interface InterventionDetail {
   id: string;
   studentId: string;
   title: string;
@@ -22,7 +23,15 @@ const mockInterventions: Array<{
   notes: string | null;
   createdAt: string;
   updatedAt: string;
-}> = [];
+}
+
+type InterventionUpdate = Partial<
+  Omit<InterventionDetail, "id" | "studentId" | "createdAt" | "updatedAt">
+> & {
+  status?: InterventionDetail["status"];
+};
+
+const mockInterventions: InterventionDetail[] = [];
 
 /**
  * GET /api/interventions/[id]
@@ -77,7 +86,7 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const body = (await request.json()) as any;
+    const body = (await request.json()) as InterventionUpdate | null;
 
     // Find intervention in mock data
     const interventionIndex = mockInterventions.findIndex((i) => i.id === id);
@@ -90,21 +99,21 @@ export async function PUT(
     }
 
     // Update intervention data
-    if (body.title !== undefined)
+    if (body?.title !== undefined)
       mockInterventions[interventionIndex].title = body.title;
-    if (body.issue !== undefined)
+    if (body?.issue !== undefined)
       mockInterventions[interventionIndex].issue = body.issue;
-    if (body.goal !== undefined)
+    if (body?.goal !== undefined)
       mockInterventions[interventionIndex].goal = body.goal;
-    if (body.actionSteps !== undefined)
+    if (body?.actionSteps !== undefined)
       mockInterventions[interventionIndex].actionSteps = body.actionSteps;
-    if (body.status !== undefined)
+    if (body?.status !== undefined)
       mockInterventions[interventionIndex].status = body.status;
-    if (body.startDate !== undefined)
+    if (body?.startDate !== undefined)
       mockInterventions[interventionIndex].startDate = body.startDate;
-    if (body.endDate !== undefined)
+    if (body?.endDate !== undefined)
       mockInterventions[interventionIndex].endDate = body.endDate || null;
-    if (body.notes !== undefined)
+    if (body?.notes !== undefined)
       mockInterventions[interventionIndex].notes = body.notes || null;
 
     mockInterventions[interventionIndex].updatedAt = new Date().toISOString();

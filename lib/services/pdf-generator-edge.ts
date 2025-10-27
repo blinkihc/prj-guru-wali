@@ -1,6 +1,6 @@
 // Edge-compatible PDF Generator using jsPDF
 // Created: 2025-10-16
-// Updated: 2025-10-17 - MODULAR REFACTOR with SOLID principles
+// Updated: 2025-10-20 - Ekspor tipe jurnal/pertemuan untuk reuse lint-safe
 // Legal paper (8.5" x 14"), proper margins, font standards
 // Replaces @react-pdf/renderer for Cloudflare Pages compatibility
 
@@ -38,7 +38,7 @@ interface StudentData {
   gender: string;
 }
 
-interface JournalEntry {
+export interface JournalEntry {
   id: string;
   month: string;
   year: number;
@@ -49,7 +49,7 @@ interface JournalEntry {
   spiritualDevelopment: string;
 }
 
-interface MeetingLog {
+export interface MeetingLog {
   id: string;
   date: string;
   type: string;
@@ -57,7 +57,7 @@ interface MeetingLog {
   notes: string;
 }
 
-interface Intervention {
+export interface Intervention {
   id: string;
   date: string;
   issue: string;
@@ -131,6 +131,18 @@ const LINE_SPACING = 1.5;
 
 // Calculate usable width
 const USABLE_WIDTH = PAPER.LEGAL.width - MARGINS.left - MARGINS.right;
+
+type AutoTableDoc = jsPDF & { lastAutoTable?: { finalY: number } };
+
+function getLastAutoTableFinalY(doc: jsPDF): number | null {
+  const tableAwareDoc = doc as AutoTableDoc;
+  return tableAwareDoc.lastAutoTable?.finalY ?? null;
+}
+
+type GraphicsStateDoc = jsPDF & {
+  setGState?: (state: object) => void;
+  GState?: (options: { opacity: number }) => object;
+};
 
 /**
  * Generate Student Report PDF
@@ -248,7 +260,10 @@ export function generateStudentReportPDF(
       margin: { left: 20, right: 20 },
     });
 
-    yPos = (doc as any).lastAutoTable.finalY + 10;
+    const finalY = getLastAutoTableFinalY(doc);
+    if (typeof finalY === "number") {
+      yPos = finalY + 10;
+    }
   }
 
   // === MEETINGS TABLE ===
@@ -284,7 +299,10 @@ export function generateStudentReportPDF(
       },
     });
 
-    yPos = (doc as any).lastAutoTable.finalY + 10;
+    const finalY = getLastAutoTableFinalY(doc);
+    if (typeof finalY === "number") {
+      yPos = finalY + 10;
+    }
   }
 
   // === INTERVENTIONS TABLE ===
@@ -320,7 +338,10 @@ export function generateStudentReportPDF(
       },
     });
 
-    yPos = (doc as any).lastAutoTable.finalY + 15;
+    const finalY = getLastAutoTableFinalY(doc);
+    if (typeof finalY === "number") {
+      yPos = finalY + 15;
+    }
   }
 
   // === FOOTER ===
@@ -361,14 +382,14 @@ export function generateStudentReportPDF(
  * @param meetingRecords - Optional meeting records
  * @param meetingSummary - Optional meeting summary
  */
-export function generateSemesterReportPDF(
+export async function generateSemesterReportPDF(
   students: StudentData[],
   coverOptions: CoverOptions,
   nipNuptk: string,
   studentJournals?: StudentJournalEntry[],
   meetingRecords?: MeetingRecordEntry[], // Lampiran C: Individual meetings
   meetingSummary?: MeetingSummaryEntry[], // Lampiran D: Monthly summary
-): Uint8Array {
+): Promise<Uint8Array> {
   // Initialize with Legal paper size
   const doc = new jsPDF({
     unit: "pt",
@@ -383,7 +404,7 @@ export function generateSemesterReportPDF(
   // ==========================================
 
   // 1. Cover Page (with flexible cover options)
-  addSemesterCoverPage(doc, coverOptions);
+  await addSemesterCoverPage(doc, coverOptions);
 
   // 2. SOP Pages (Permendikdasmen No. 11 Tahun 2025)
   addSOPPages(doc, coverOptions.schoolName, coverOptions.academicYear);
@@ -423,7 +444,7 @@ export function generateSemesterReportPDF(
  * Updated: 2025-10-18 - Removed PNG corners to fix signature errors
  */
 function addDecorativeCorners(doc: jsPDF): void {
-  console.log("🎨 [NEW CODE] addDecorativeCorners - diagonal lines only");
+  console.log(" [NEW CODE] addDecorativeCorners - diagonal lines only");
   const pageWidth = PAPER.LEGAL.width;
   const pageHeight = PAPER.LEGAL.height;
 
@@ -439,7 +460,10 @@ function addDecorativeCorners(doc: jsPDF): void {
   doc.setDrawColor(220, 220, 220); // Very light gray for shadow
   doc.setLineWidth(0.3);
   doc.saveGraphicsState();
-  (doc as any).setGState((doc as any).GState({ opacity: 0.15 })); // Very subtle
+  const graphicsDoc = doc as GraphicsStateDoc;
+  if (graphicsDoc.setGState && graphicsDoc.GState) {
+    graphicsDoc.setGState(graphicsDoc.GState({ opacity: 0.15 }));
+  }
   const spacing = 60;
   for (
     let offset = -pageHeight;
@@ -452,7 +476,9 @@ function addDecorativeCorners(doc: jsPDF): void {
   // Second pass: White lines on top
   doc.setDrawColor(255, 255, 255); // White
   doc.setLineWidth(0.5);
-  (doc as any).setGState((doc as any).GState({ opacity: 0.08 })); // Super tipis
+  if (graphicsDoc.setGState && graphicsDoc.GState) {
+    graphicsDoc.setGState(graphicsDoc.GState({ opacity: 0.08 }));
+  }
   for (
     let offset = -pageHeight;
     offset < pageWidth + pageHeight;
@@ -813,7 +839,12 @@ function addSOPPages(
     tableWidth: "auto",
   });
 
-  yPos = (doc as any).lastAutoTable.finalY + FONTS.body * LINE_SPACING * 2;
+  {
+    const finalY = getLastAutoTableFinalY(doc);
+    if (typeof finalY === "number") {
+      yPos = finalY + FONTS.body * LINE_SPACING * 2;
+    }
+  }
 
   // IMPORTANT: Reset font size after autoTable (autoTable changes it)
   doc.setFontSize(FONTS.body); // Reset to 12pt
@@ -916,26 +947,149 @@ function _addBodyText(
  * MODULAR SECTION 1: Add Cover Page
  * Supports dual cover system: simple (text-only) or illustration (image + text)
  */
-function addSemesterCoverPage(doc: jsPDF, options: CoverOptions): void {
+async function addSemesterCoverPage(
+  doc: jsPDF,
+  options: CoverOptions,
+): Promise<void> {
   // NO decorative corners on cover page (page 1 only)
   const centerX = PAPER.LEGAL.width / 2;
 
   if (options.type === "illustration" && options.illustrationUrl) {
     // ==========================================
-    // ILLUSTRATION COVER (Future implementation)
+    // ILLUSTRATION COVER (Phase 2 Implementation)
     // ==========================================
-    // TODO Phase 2: Load image from R2, add as background
-    // For now, fallback to simple cover
-    console.log(
-      "Illustration cover requested but not yet implemented. Using simple cover.",
-    );
-    addSimpleCover(doc, options, centerX);
+    try {
+      await addIllustrationCover(doc, options, centerX);
+    } catch (error) {
+      console.warn(
+        "Failed to load illustration cover, falling back to simple:",
+        error,
+      );
+      addSimpleCover(doc, options, centerX);
+    }
   } else {
     // ==========================================
     // SIMPLE TEXT COVER (Current default)
     // ==========================================
     addSimpleCover(doc, options, centerX);
   }
+}
+
+/**
+ * Helper: Render illustration-based cover with image background
+ */
+async function addIllustrationCover(
+  doc: jsPDF,
+  options: CoverOptions,
+  centerX: number,
+): Promise<void> {
+  if (!options.illustrationUrl) {
+    throw new Error("Illustration URL is required for illustration cover");
+  }
+
+  // ==========================================
+  // LOAD ILLUSTRATION IMAGE FROM R2
+  // ==========================================
+  let imageData: string;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    const response = await fetch(options.illustrationUrl, {
+      signal: controller.signal,
+      headers: {
+        Accept: "image/*",
+      },
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch illustration: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = btoa(
+      String.fromCharCode(...Array.from(new Uint8Array(arrayBuffer))),
+    );
+
+    // Determine image format from URL or content-type
+    const contentType = response.headers.get("content-type") || "image/png";
+    const format =
+      contentType.includes("jpeg") || contentType.includes("jpg")
+        ? "JPEG"
+        : "PNG";
+    imageData = `data:${contentType};base64,${base64}`;
+
+    // ==========================================
+    // RENDER ILLUSTRATION AS BACKGROUND
+    // ==========================================
+    const pageWidth = PAPER.LEGAL.width;
+    const pageHeight = PAPER.LEGAL.height;
+
+    // Add illustration as full-page background with some padding
+    const padding = 40;
+    doc.addImage(
+      imageData,
+      format,
+      padding, // x
+      padding, // y
+      pageWidth - padding * 2, // width
+      pageHeight - padding * 2, // height
+      undefined, // alias
+      "SLOW", // compression
+    );
+  } catch (error) {
+    console.error("Error loading illustration:", error);
+    throw error; // Re-throw to trigger fallback
+  }
+
+  // ==========================================
+  // ADD TEXT OVERLAY ON ILLUSTRATION
+  // ==========================================
+  // Add semi-transparent overlay for text readability
+  doc.setFillColor(255, 255, 255); // White overlay
+
+  const overlayY = PAPER.LEGAL.height - 200; // Bottom area for text
+  doc.roundedRect(
+    40, // x
+    overlayY, // y
+    PAPER.LEGAL.width - 80, // width
+    140, // height
+    10, // radius
+    10, // radius
+    "F", // fill
+  );
+
+  // Add text content over the overlay
+  let yPos = overlayY + 30;
+
+  // Title
+  doc.setFontSize(FONTS.cover); // Use existing cover font size
+  doc.setFont("times", "bold");
+  doc.setTextColor(0, 0, 0); // Black text
+  doc.text("LAPORAN SEMESTER", centerX, yPos, { align: "center" });
+  yPos += FONTS.cover * LINE_SPACING;
+
+  // School name
+  doc.setFontSize(FONTS.heading); // Use existing heading font size
+  doc.setFont("times", "normal");
+  doc.text(options.schoolName, centerX, yPos, { align: "center" });
+  yPos += FONTS.heading * LINE_SPACING;
+
+  // Academic period
+  doc.setFontSize(FONTS.body);
+  doc.text(`${options.semester} • ${options.academicYear}`, centerX, yPos, {
+    align: "center",
+  });
+  yPos += FONTS.body * LINE_SPACING;
+
+  // Teacher name
+  doc.setFont("times", "italic");
+  doc.text(`Guru BK: ${options.teacherName}`, centerX, yPos, {
+    align: "center",
+  });
 }
 
 /**
@@ -959,23 +1113,21 @@ function addSimpleCover(
   if (hasLogoDinas || hasLogoSekolah) {
     try {
       if (hasLogoDinas && hasLogoSekolah) {
+        const logoDinas = options.logoDinasPendidikan;
+        const logoSekolah = options.logoSekolah;
+        if (!logoDinas || !logoSekolah) {
+          throw new Error("Logo references unavailable despite flags");
+        }
         // CASE 1: Both logos - side by side
         const totalWidth = logoHeight * 2 + logoSpacing;
         const startX = centerX - totalWidth / 2;
 
         // Left logo (Dinas Pendidikan)
-        doc.addImage(
-          options.logoDinasPendidikan!,
-          "PNG",
-          startX,
-          yPos,
-          logoHeight,
-          logoHeight,
-        );
+        doc.addImage(logoDinas, "PNG", startX, yPos, logoHeight, logoHeight);
 
         // Right logo (Sekolah)
         doc.addImage(
-          options.logoSekolah!,
+          logoSekolah,
           "PNG",
           startX + logoHeight + logoSpacing,
           yPos,
@@ -983,9 +1135,13 @@ function addSimpleCover(
           logoHeight,
         );
       } else if (hasLogoDinas) {
+        const logoDinas = options.logoDinasPendidikan;
+        if (!logoDinas) {
+          throw new Error("Logo Dinas reference missing");
+        }
         // CASE 2: Only Dinas logo - centered
         doc.addImage(
-          options.logoDinasPendidikan!,
+          logoDinas,
           "PNG",
           centerX - logoHeight / 2,
           yPos,
@@ -993,9 +1149,13 @@ function addSimpleCover(
           logoHeight,
         );
       } else if (hasLogoSekolah) {
+        const logoSekolah = options.logoSekolah;
+        if (!logoSekolah) {
+          throw new Error("Logo Sekolah reference missing");
+        }
         // CASE 3: Only School logo - centered
         doc.addImage(
-          options.logoSekolah!,
+          logoSekolah,
           "PNG",
           centerX - logoHeight / 2,
           yPos,
@@ -1396,7 +1556,12 @@ function addLampiranD(
     styles: { cellPadding: 4 },
   });
 
-  yPos = (doc as any).lastAutoTable.finalY + FONTS.body * 2;
+  {
+    const finalY = getLastAutoTableFinalY(doc);
+    if (typeof finalY === "number") {
+      yPos = finalY + FONTS.body * 2;
+    }
+  }
 
   // Section 2: Catatan Perkembangan Umum
   yPos = checkPageBreak(doc, yPos, 150);
@@ -1482,3 +1647,382 @@ function addLampiranD(
 }
 
 // NOTE: Signature section removed - now integrated at end of Lampiran D
+
+// ==========================================
+// BIODATA SISWA PDF - Full 32 Fields + Social Usages
+// ==========================================
+
+export interface StudentBiodataData {
+  // Data Diri (16 fields)
+  fullName: string;
+  nis: string | null;
+  nisn: string | null;
+  classroom: string | null;
+  gender: "L" | "P" | null;
+  birthPlace: string | null;
+  birthDate: string | null;
+  religion: string | null;
+  bloodType: string | null;
+  economicStatus: string | null;
+  address: string | null;
+  phoneNumber: string | null;
+  dream: string | null;
+  extracurricular: string | null;
+  hobby: string | null;
+  photoUrl: string | null;
+
+  // Data Orang Tua (8 fields)
+  parentName: string | null;
+  parentContact: string | null;
+  fatherName: string | null;
+  fatherJob: string | null;
+  fatherIncome: number | null;
+  motherName: string | null;
+  motherJob: string | null;
+  motherIncome: number | null;
+
+  // Kesehatan (3 fields)
+  healthHistoryPast: string | null;
+  healthHistoryCurrent: string | null;
+  healthHistoryOften: string | null;
+
+  // Karakter (2 fields)
+  characterStrength: string | null;
+  characterImprovement: string | null;
+
+  // Lainnya (2 fields)
+  specialNotes: string | null;
+
+  // Social Media (array)
+  socialUsages: Array<{
+    platform: string;
+    username: string | null;
+    isActive: boolean;
+  }>;
+}
+
+/**
+ * Generate Student Biodata PDF (Full 32 Fields)
+ * Template: BioSiswa123.png - Exact layout match
+ */
+export function generateStudentBiodataPDF(
+  student: StudentBiodataData,
+  schoolName: string,
+  teacherName: string,
+  academicYear: string,
+): Uint8Array {
+  const doc = new jsPDF();
+  const NULL_VALUE = "";
+
+  // Helper untuk display value
+  const display = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined || value === "")
+      return NULL_VALUE;
+    return String(value);
+  };
+
+  const formatCurrency = (value: number | null): string => {
+    if (!value) return NULL_VALUE;
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  // Colors from template
+  const _TEAL_HEADER = [9, 148, 147]; // Hijau tosca header
+  const _ORANGE_SECTION = [235, 125, 74]; // Orange section bars
+  const _CREAM_BG = [244, 229, 192]; // Cream/tan background
+  const _ORANGE_STAR = [255, 153, 0]; // Orange decorative star
+
+  const _pageWidth = doc.internal.pageSize.getWidth();
+  const _pageHeight = doc.internal.pageSize.getHeight();
+
+  // Set font
+  doc.setFont("helvetica");
+
+  let yPos = 10;
+
+  // === HEADER ===
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("BIODATA SISWA", 105, yPos, { align: "center" });
+  yPos += 8;
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text(schoolName, 105, yPos, { align: "center" });
+  yPos += 6;
+  doc.text(`Tahun Ajaran ${academicYear}`, 105, yPos, { align: "center" });
+  yPos += 12;
+
+  // === SECTION 1: DATA DIRI SISWA ===
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("I. DATA DIRI SISWA", 20, yPos);
+  yPos += 8;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+
+  const leftX = 25;
+  const valueX = 75;
+  const lineHeight = 6;
+
+  // Column 1
+  doc.text("Nama Lengkap", leftX, yPos);
+  doc.text(`: ${display(student.fullName)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("NIS", leftX, yPos);
+  doc.text(`: ${display(student.nis)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("NISN", leftX, yPos);
+  doc.text(`: ${display(student.nisn)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Kelas", leftX, yPos);
+  doc.text(`: ${display(student.classroom)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Jenis Kelamin", leftX, yPos);
+  doc.text(
+    `: ${student.gender === "L" ? "Laki-laki" : student.gender === "P" ? "Perempuan" : NULL_VALUE}`,
+    valueX,
+    yPos,
+  );
+  yPos += lineHeight;
+
+  doc.text("Tempat Lahir", leftX, yPos);
+  doc.text(`: ${display(student.birthPlace)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Tanggal Lahir", leftX, yPos);
+  doc.text(`: ${display(student.birthDate)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Agama", leftX, yPos);
+  doc.text(`: ${display(student.religion)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Golongan Darah", leftX, yPos);
+  doc.text(`: ${display(student.bloodType)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Status Ekonomi", leftX, yPos);
+  doc.text(`: ${display(student.economicStatus)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Alamat", leftX, yPos);
+  const alamat = display(student.address);
+  if (alamat.length > 60) {
+    const words = alamat.split(" ");
+    let line1 = "";
+    let line2 = "";
+    for (const word of words) {
+      if (line1.length + word.length < 60) {
+        line1 += `${word} `;
+      } else {
+        line2 += `${word} `;
+      }
+    }
+    doc.text(`: ${line1.trim()}`, valueX, yPos);
+    yPos += lineHeight;
+    doc.text(`  ${line2.trim()}`, valueX, yPos);
+  } else {
+    doc.text(`: ${alamat}`, valueX, yPos);
+  }
+  yPos += lineHeight;
+
+  doc.text("Nomor HP", leftX, yPos);
+  doc.text(`: ${display(student.phoneNumber)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Cita-cita", leftX, yPos);
+  doc.text(`: ${display(student.dream)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Ekstrakurikuler", leftX, yPos);
+  doc.text(`: ${display(student.extracurricular)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Hobi", leftX, yPos);
+  doc.text(`: ${display(student.hobby)}`, valueX, yPos);
+  yPos += 10;
+
+  // === SECTION 2: DATA ORANG TUA ===
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("II. DATA ORANG TUA/WALI", 20, yPos);
+  yPos += 8;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+
+  doc.text("Nama Orang Tua/Wali", leftX, yPos);
+  doc.text(`: ${display(student.parentName)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Kontak Orang Tua", leftX, yPos);
+  doc.text(`: ${display(student.parentContact)}`, valueX, yPos);
+  yPos += lineHeight + 2;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Data Ayah Kandung:", leftX, yPos);
+  yPos += lineHeight;
+
+  doc.setFont("helvetica", "normal");
+  doc.text("Nama Ayah", leftX + 5, yPos);
+  doc.text(`: ${display(student.fatherName)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Pekerjaan Ayah", leftX + 5, yPos);
+  doc.text(`: ${display(student.fatherJob)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Penghasilan Ayah", leftX + 5, yPos);
+  doc.text(`: ${formatCurrency(student.fatherIncome)}`, valueX, yPos);
+  yPos += lineHeight + 2;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Data Ibu Kandung:", leftX, yPos);
+  yPos += lineHeight;
+
+  doc.setFont("helvetica", "normal");
+  doc.text("Nama Ibu", leftX + 5, yPos);
+  doc.text(`: ${display(student.motherName)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Pekerjaan Ibu", leftX + 5, yPos);
+  doc.text(`: ${display(student.motherJob)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Penghasilan Ibu", leftX + 5, yPos);
+  doc.text(`: ${formatCurrency(student.motherIncome)}`, valueX, yPos);
+  yPos += 10;
+
+  // Check page break
+  if (yPos > 250) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  // === SECTION 3: RIWAYAT KESEHATAN ===
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("III. RIWAYAT KESEHATAN", 20, yPos);
+  yPos += 8;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+
+  doc.text("Riwayat Kesehatan (Dulu)", leftX, yPos);
+  doc.text(`: ${display(student.healthHistoryPast)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Kondisi Kesehatan (Sekarang)", leftX, yPos);
+  doc.text(`: ${display(student.healthHistoryCurrent)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Keluhan Kesehatan (Sering)", leftX, yPos);
+  doc.text(`: ${display(student.healthHistoryOften)}`, valueX, yPos);
+  yPos += 10;
+
+  // === SECTION 4: KARAKTER & PERILAKU ===
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("IV. KARAKTER & PERILAKU", 20, yPos);
+  yPos += 8;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+
+  doc.text("Kekuatan Karakter", leftX, yPos);
+  doc.text(`: ${display(student.characterStrength)}`, valueX, yPos);
+  yPos += lineHeight;
+
+  doc.text("Perlu Peningkatan", leftX, yPos);
+  doc.text(`: ${display(student.characterImprovement)}`, valueX, yPos);
+  yPos += 10;
+
+  // === SECTION 5: MEDIA SOSIAL ===
+  if (student.socialUsages && student.socialUsages.length > 0) {
+    const activeSocial = student.socialUsages.filter(
+      (s) => s.platform && s.platform !== NULL_VALUE,
+    );
+
+    if (activeSocial.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("V. MEDIA SOSIAL", 20, yPos);
+      yPos += 8;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+
+      for (const social of activeSocial) {
+        doc.text(`${social.platform}`, leftX, yPos);
+        doc.text(
+          `: @${display(social.username)} ${social.isActive ? "(Aktif)" : "(Tidak Aktif)"}`,
+          valueX,
+          yPos,
+        );
+        yPos += lineHeight;
+      }
+      yPos += 5;
+    }
+  }
+
+  // === SECTION 6: CATATAN KHUSUS ===
+  if (student.specialNotes && student.specialNotes !== NULL_VALUE) {
+    // Check page break
+    if (yPos > 240) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("VI. CATATAN KHUSUS", 20, yPos);
+    yPos += 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+
+    // Split long text into lines
+    const maxWidth = 170;
+    const lines = doc.splitTextToSize(student.specialNotes, maxWidth);
+    doc.text(lines, leftX, yPos);
+    yPos += lines.length * lineHeight + 10;
+  }
+
+  // === FOOTER: SIGNATURE ===
+  // Check page break
+  if (yPos > 230) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  yPos += 10;
+  const today = new Date().toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  const signX = 130;
+  doc.text(`${schoolName}, ${today}`, signX, yPos);
+  yPos += lineHeight;
+  doc.setFont("helvetica", "bold");
+  doc.text("Guru Wali,", signX, yPos);
+  yPos += lineHeight * 4; // Space for signature
+
+  doc.setFont("helvetica", "normal");
+  doc.text(teacherName, signX, yPos);
+
+  return new Uint8Array(doc.output("arraybuffer") as ArrayBuffer);
+}

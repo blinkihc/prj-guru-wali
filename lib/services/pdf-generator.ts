@@ -2,9 +2,11 @@
 // Handles PDF generation with streaming and progress tracking
 // Created: 2025-10-15
 
+import type { DocumentProps } from "@react-pdf/renderer";
 import { renderToBuffer } from "@react-pdf/renderer";
-import type React from "react";
 import type { ReactElement } from "react";
+
+type PDFDocumentElement = ReactElement<DocumentProps>;
 
 export interface PDFGenerationProgress {
   stage: "preparing" | "rendering" | "finalizing" | "complete";
@@ -28,7 +30,7 @@ export class PDFGeneratorService {
    * Generate PDF from React component
    */
   async generate(
-    component: ReactElement,
+    component: PDFDocumentElement,
     options: PDFGenerationOptions = {},
   ): Promise<Buffer> {
     const { onProgress, timeout = 120000 } = options;
@@ -71,11 +73,11 @@ export class PDFGeneratorService {
    * Generate PDF with timeout protection
    */
   private async generateWithTimeout(
-    component: ReactElement,
+    component: PDFDocumentElement,
     timeout: number,
   ): Promise<Buffer> {
     return Promise.race([
-      renderToBuffer(component as React.ReactElement<any>),
+      renderToBuffer(component),
       this.createTimeoutPromise(timeout),
     ]);
   }
@@ -95,7 +97,7 @@ export class PDFGeneratorService {
    * Generate PDF stream for chunked transfer encoding
    */
   async *generateStream(
-    component: ReactElement,
+    component: PDFDocumentElement,
     options: PDFGenerationOptions = {},
   ): AsyncGenerator<Uint8Array, void, unknown> {
     const buffer = await this.generate(component, options);

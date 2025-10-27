@@ -2,11 +2,12 @@
 // Get list of generated reports (semester and individual)
 // Created: 2025-10-17
 
+import type { D1Database } from "@cloudflare/workers-types";
 import { eq, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { meetingLogs, monthlyJournals, students } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db/client";
+import { type Database, getDb } from "@/lib/db/client";
 
 export const runtime = "edge";
 
@@ -19,12 +20,12 @@ export async function GET(_request: NextRequest) {
     }
 
     // Get D1 binding (with fallback for local dev)
-    let db;
+    let db: Database | undefined;
     try {
-      // @ts-ignore - Cloudflare context not available in types
+      // @ts-expect-error - Cloudflare context types unavailable in Node runtime
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      const env = ctx?.env as { DB?: D1Database } | undefined;
 
       if (!env?.DB) {
         // Local dev fallback - return empty data
@@ -50,7 +51,15 @@ export async function GET(_request: NextRequest) {
     }
 
     // Fetch students for individual reports
-    const allStudents = await db
+    const database = db;
+    if (!database) {
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 503 },
+      );
+    }
+
+    const allStudents = await database
       .select()
       .from(students)
       .where(eq(students.userId, session.userId));
@@ -59,7 +68,7 @@ export async function GET(_request: NextRequest) {
     const studentIds = allStudents.map((s) => s.id);
     const allJournals =
       studentIds.length > 0
-        ? await db
+        ? await database
             .select()
             .from(monthlyJournals)
             .where(
@@ -73,7 +82,7 @@ export async function GET(_request: NextRequest) {
     // Get meetings for all students
     const allMeetings =
       studentIds.length > 0
-        ? await db
+        ? await database
             .select()
             .from(meetingLogs)
             .where(

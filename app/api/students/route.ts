@@ -1,28 +1,30 @@
 // Students API - List and Create
-// Created: 2025-10-14
-// Handles GET (list with search) and POST (create) for students
-// TODO: Implement actual D1 database integration (currently using mock data for UI testing)
+// Last updated: 2025-10-21 - Update POST untuk handle 32 field + social usages
 
+import type { D1Database } from "@cloudflare/workers-types";
+import { and, desc, eq, like, or } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { studentSocialUsages, students } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
+import { type Database, getDb } from "@/lib/db/client";
+import { normalizeStudentUpdates } from "@/lib/services/students/biodata-utils";
 
 export const runtime = "edge";
 
-// MVP v1.0.0: Start with empty data - users create their own
-// TODO: Replace with actual D1 database integration
-const mockStudents: Array<{
-  id: string;
-  userId: string;
-  fullName: string;
-  nisn: string;
-  classroom: string;
-  gender: string;
-  parentName: string;
-  parentContact: string;
-  specialNotes: string;
-  createdAt: string;
-}> = [];
+const DEFAULT_LIMIT = 50;
+
+async function getDatabase(): Promise<Database> {
+  const { getRequestContext } = await import("@cloudflare/next-on-pages");
+  const ctx = getRequestContext();
+  const env = ctx?.env as { DB?: D1Database } | undefined;
+
+  if (!env?.DB) {
+    throw new Error("Database unavailable");
+  }
+
+  return getDb(env.DB);
+}
 
 /**
  * GET /api/students
@@ -42,27 +44,66 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
+    const limitParam = Number(searchParams.get("limit") || DEFAULT_LIMIT);
+    const offsetParam = Number(searchParams.get("offset") || 0);
+    const limit =
+      Number.isFinite(limitParam) && limitParam > 0
+        ? limitParam
+        : DEFAULT_LIMIT;
+    const offset =
+      Number.isFinite(offsetParam) && offsetParam >= 0 ? offsetParam : 0;
 
-    // Filter mock data
-    let filtered = mockStudents;
+    let db: Database;
+    try {
+      db = await getDatabase();
+    } catch (error) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[Students] Cloudflare bindings unavailable in development, returning empty list",
+          error,
+        );
+        return NextResponse.json({
+          students: [],
+          pagination: {
+            total: 0,
+            limit,
+            offset,
+            hasMore: false,
+          },
+        });
+      }
+      throw error;
+    }
+
+    // Build query dengan Drizzle ORM
+    const conditions = [eq(students.userId, session.userId)];
 
     if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = mockStudents.filter(
-        (s) =>
-          s.fullName.toLowerCase().includes(searchLower) ||
-          s.nisn?.toLowerCase().includes(searchLower) ||
-          s.classroom?.toLowerCase().includes(searchLower),
+      const searchPattern = `%${search.toLowerCase()}%`;
+      conditions.push(
+        or(
+          like(students.fullName, searchPattern),
+          like(students.nisn, searchPattern),
+          like(students.classroom, searchPattern),
+        ) ?? eq(students.id, ""), // fallback jika or() undefined
       );
     }
 
+    const studentsList = await db
+      .select()
+      .from(students)
+      .where(and(...conditions))
+      .orderBy(desc(students.createdAt))
+      .limit(limit)
+      .offset(offset);
+
     return NextResponse.json({
-      students: filtered,
+      students: studentsList,
       pagination: {
-        total: filtered.length,
-        limit: 50,
-        offset: 0,
-        hasMore: false,
+        total: studentsList.length,
+        limit,
+        offset,
+        hasMore: studentsList.length === limit,
       },
     });
   } catch (error) {
@@ -77,7 +118,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/students
  * Create a new student
- * Body: { fullName, nisn?, classroom?, gender?, parentContact?, specialNotes? }
+ * Body: { fullName (required), + 31 field biodata opsional, socialUsages?: array }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -87,10 +128,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as any;
+    const body = (await request.json()) as Record<string, unknown>;
 
     // Validate required fields
-    if (!body.fullName || typeof body.fullName !== "string") {
+    if (typeof body.fullName !== "string" || body.fullName.trim() === "") {
       return NextResponse.json(
         { error: "fullName is required" },
         { status: 400 },
@@ -98,32 +139,67 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate gender if provided
-    if (body.gender && !["L", "P"].includes(body.gender)) {
+    if (
+      body.gender !== undefined &&
+      body.gender !== null &&
+      typeof body.gender === "string" &&
+      body.gender !== "" &&
+      !["L", "P"].includes(body.gender)
+    ) {
       return NextResponse.json(
         { error: "gender must be 'L' or 'P'" },
         { status: 400 },
       );
     }
 
-    // Create mock student (in real app, this would insert to database)
-    const newStudent = {
-      id: `${Date.now()}`,
-      userId: session.userId,
-      fullName: body.fullName.trim(),
-      nisn: body.nisn?.trim() || null,
-      classroom: body.classroom?.trim() || null,
-      gender: body.gender || null,
-      parentName: body.parentName?.trim() || null,
-      parentContact: body.parentContact?.trim() || null,
-      specialNotes: body.specialNotes?.trim() || null,
-      createdAt: new Date().toISOString(),
-    };
+    const db = await getDatabase();
+    const id = crypto.randomUUID();
 
-    // In real app: save to database
-    mockStudents.push(newStudent);
+    // Normalize semua field menggunakan biodata-utils
+    const normalized = normalizeStudentUpdates(body);
+
+    // Ensure fullName exists (sudah divalidasi di atas)
+    const fullName =
+      normalized.studentUpdates.fullName ?? (body.fullName as string);
+
+    // Insert student dengan semua field yang dinormalisasi
+    await db.insert(students).values({
+      id,
+      userId: session.userId,
+      fullName,
+      ...normalized.studentUpdates,
+    });
+
+    // Insert social usages jika ada
+    if (normalized.socialUsages.length > 0) {
+      for (const usage of normalized.socialUsages) {
+        await db.insert(studentSocialUsages).values({
+          studentId: id,
+          platform: usage.platform,
+          username: usage.username,
+          isActive: usage.isActive ? 1 : 0,
+        });
+      }
+    }
+
+    // Fetch created student dengan social usages
+    const [createdStudent] = await db
+      .select()
+      .from(students)
+      .where(eq(students.id, id))
+      .limit(1);
+
+    const socialUsages = await db
+      .select()
+      .from(studentSocialUsages)
+      .where(eq(studentSocialUsages.studentId, id));
 
     return NextResponse.json(
-      { student: newStudent, message: "Student created successfully" },
+      {
+        student: createdStudent,
+        socialUsages,
+        message: "Student created successfully",
+      },
       { status: 201 },
     );
   } catch (error) {

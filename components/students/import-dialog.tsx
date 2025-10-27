@@ -6,7 +6,7 @@
 
 import { Download, Upload } from "lucide-react";
 import Papa from "papaparse";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,8 +15,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RippleButton } from "@/components/ui/ripple-button";
-import type { Student } from "@/drizzle/schema/students";
+import {
+  parseCsvRows,
+  STUDENT_IMPORT_HEADERS,
+} from "@/lib/services/students/import-parser";
 import { toast } from "@/lib/toast";
+import type { StudentImportRow } from "@/types/student-import";
 import { ImportPreviewTable } from "./import-preview-table";
 
 interface ImportDialogProps {
@@ -24,13 +28,6 @@ interface ImportDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
-
-type ParsedStudent = Omit<Student, "id" | "userId" | "createdAt"> & {
-  _rowIndex: number;
-  _rowId: number;
-  _isValid: boolean;
-  _errors: string[] | Record<string, string>;
-};
 
 type ImportStep = "upload" | "preview" | "importing";
 
@@ -40,7 +37,7 @@ export function ImportDialog({
   onSuccess,
 }: ImportDialogProps) {
   const [step, setStep] = useState<ImportStep>("upload");
-  const [parsedData, setParsedData] = useState<ParsedStudent[]>([]);
+  const [parsedData, setParsedData] = useState<StudentImportRow[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Reset state when dialog closes
@@ -76,53 +73,17 @@ export function ImportDialog({
 
       setIsProcessing(true);
 
-      // Parse CSV
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
           try {
-            // biome-ignore lint/suspicious/noExplicitAny: PapaCSV returns any type
-            const students = results.data.map((row: any, index: number) => {
-              const errors: string[] = [];
-
-              // Map CSV columns to student fields
-              const fullName = row["Nama Lengkap"]?.trim();
-              const nisn = row.NISN?.trim();
-              const classroom = row.Kelas?.trim();
-              const gender = row["Jenis Kelamin"]?.trim();
-              const parentName = row["Nama Orang Tua"]?.trim();
-              const parentContact = row["Kontak Orang Tua"]?.trim();
-              const specialNotes = row["Catatan Khusus"]?.trim();
-
-              // Validate required fields
-              if (!fullName) {
-                errors.push("Nama lengkap wajib diisi");
-              }
-
-              // Validate gender
-              if (gender && !["L", "P"].includes(gender)) {
-                errors.push('Jenis kelamin harus "L" atau "P"');
-              }
-
-              return {
-                fullName: fullName || "",
-                nisn: nisn || null,
-                classroom: classroom || null,
-                gender: (gender as "L" | "P" | null) || null,
-                parentName: parentName || null,
-                parentContact: parentContact || null,
-                specialNotes: specialNotes || null,
-                _rowIndex: index + 2, // +2 because of header and 0-indexing
-                _rowId: index,
-                _isValid: errors.length === 0,
-                _errors: errors,
-              };
-            });
-
-            setParsedData(students);
+            const rows = parseCsvRows(
+              results.data as Record<string, unknown>[],
+            );
+            setParsedData(rows);
             setStep("preview");
-            toast.success(`${students.length} data berhasil dibaca`);
+            toast.success(`${rows.length} data berhasil dibaca`);
           } catch (error) {
             console.error("Parse error:", error);
             toast.error("Gagal membaca file CSV");
@@ -146,7 +107,7 @@ export function ImportDialog({
   // Handle import
   const handleImport = async () => {
     // Filter out rows with errors
-    const validData = parsedData.filter((row) => row._errors.length === 0);
+    const validData = parsedData.filter((row) => !hasRowErrors(row));
 
     if (validData.length === 0) {
       toast.error("Tidak ada data valid untuk diimpor");
@@ -193,46 +154,58 @@ export function ImportDialog({
   };
 
   // Update row data (for inline edit)
-  const handleUpdateRow = (
-    index: number,
-    field: string,
-    value: string | null,
-  ) => {
-    setParsedData((prev) => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        [field]: value,
-      };
+  const handleUpdateRow = useCallback(
+    (rowId: string, patch: Partial<StudentImportRow>) => {
+      setParsedData((prev) =>
+        prev.map((row) => {
+          if (row._rowId !== rowId) {
+            return row;
+          }
 
-      // Re-validate
-      const errors: string[] = [];
-      if (!updated[index].fullName) {
-        errors.push("Nama lengkap wajib diisi");
-      }
-      if (
-        updated[index].gender &&
-        !["L", "P"].includes(updated[index].gender as string)
-      ) {
-        errors.push('Jenis kelamin harus "L" atau "P"');
-      }
-      updated[index]._errors = errors;
+          const next: StudentImportRow = {
+            ...row,
+            ...patch,
+          };
 
-      return updated;
-    });
-  };
+          const errors: Record<string, string> = {};
+
+          if (!next.fullName) {
+            errors.fullName = "Nama lengkap wajib diisi";
+          }
+
+          if (next.gender && !["L", "P"].includes(next.gender)) {
+            errors.gender = "Jenis kelamin harus 'L' atau 'P'";
+          }
+
+          if (next.birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(next.birthDate)) {
+            errors.birthDate = "Format tanggal tidak valid (YYYY-MM-DD)";
+          }
+
+          next._errors = errors;
+          next._isValid = Object.keys(errors).length === 0;
+
+          return next;
+        }),
+      );
+    },
+    [],
+  );
 
   // Remove row
   const _handleRemoveRow = (index: number) => {
     setParsedData((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const validCount = parsedData.filter(
-    (row) => Array.isArray(row._errors) && row._errors.length === 0,
-  ).length;
-  const errorCount = parsedData.filter(
-    (row) => Array.isArray(row._errors) && row._errors.length > 0,
-  ).length;
+  const hasRowErrors = useCallback(
+    (row: StudentImportRow) => Object.keys(row._errors).length > 0,
+    [],
+  );
+
+  const validCount = useMemo(
+    () => parsedData.filter((row) => !hasRowErrors(row)).length,
+    [parsedData, hasRowErrors],
+  );
+  const errorCount = parsedData.length - validCount;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -251,7 +224,9 @@ export function ImportDialog({
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               <h4 className="font-medium">1. Download Template CSV</h4>
               <p className="text-sm text-muted-foreground">
-                Gunakan template ini sebagai panduan format data yang benar
+                Gunakan template ini sebagai panduan format data yang benar.
+                Pastikan seluruh {STUDENT_IMPORT_HEADERS.length} kolom terisi
+                sesuai kebutuhan.
               </p>
               <RippleButton
                 variant="outline"
@@ -340,7 +315,7 @@ export function ImportDialog({
 
             {/* Preview Table */}
             <ImportPreviewTable
-              data={parsedData as any}
+              data={parsedData}
               onUpdateRow={handleUpdateRow}
             />
 

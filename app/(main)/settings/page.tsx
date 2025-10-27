@@ -1,12 +1,22 @@
 // Settings Page - User profile and school settings
-// Last updated: 2025-10-17
+// Last updated: 2025-10-19 - Stabilized fetchSettings with useCallback
 
 "use client";
 
 export const runtime = "edge";
 
-import { useEffect, useState } from "react";
+import { ImageIcon } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { SettingsForm } from "@/components/settings/settings-form";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { SkeletonCard } from "@/components/ui/skeleton";
 
 interface SettingsData {
@@ -23,7 +33,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -41,12 +51,11 @@ export default function SettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchSettings]);
 
   return (
     <div className="space-y-6">
@@ -72,7 +81,30 @@ export default function SettingsPage() {
       )}
 
       {!isLoading && !error && settings && (
-        <SettingsForm initialData={settings} onSuccess={fetchSettings} />
+        <>
+          <SettingsForm initialData={settings} onSuccess={fetchSettings} />
+
+          {/* Cover Settings Navigation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                Pengaturan Cover Laporan
+              </CardTitle>
+              <CardDescription>
+                Kelola logo dan ilustrasi untuk cover laporan semester
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/settings/cover">
+                <Button className="w-full sm:w-auto">
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  Buka Pengaturan Cover
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );

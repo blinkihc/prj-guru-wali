@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { RippleButton } from "@/components/ui/ripple-button";
+import { parseCsvRows } from "@/lib/services/students/import-parser";
 import { toast } from "@/lib/toast";
 import type { StudentImportRow } from "@/types/student-import";
 
@@ -55,29 +56,24 @@ export default function StudentImportPage() {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const rows = results.data as StudentImportRow[];
+        const rawRows = results.data as Record<string, unknown>[];
 
         // Validate max rows
-        if (rows.length > 1000) {
+        if (rawRows.length > 1000) {
           toast.error("Maksimal 1000 baris per import");
           return;
         }
 
-        if (rows.length === 0) {
+        if (rawRows.length === 0) {
           toast.error("File CSV kosong");
           return;
         }
 
-        // Add row ID and validation status
-        const processedRows = rows.map((row, index) => ({
-          ...row,
-          _rowId: index + 1,
-          _isValid: true,
-          _errors: {},
-        }));
+        // Parse and normalize CSV data using import-parser
+        const processedRows = parseCsvRows(rawRows);
 
         setParsedData(processedRows);
-        toast.success(`Berhasil memuat ${rows.length} baris data`);
+        toast.success(`Berhasil memuat ${processedRows.length} baris data`);
       },
       error: (error) => {
         console.error("CSV parse error:", error);
@@ -125,9 +121,9 @@ export default function StudentImportPage() {
     setIsImporting(true);
 
     try {
-      // Prepare data for import (remove validation fields)
+      // Prepare data for import (remove validation fields and photoUrl)
       const dataToImport = parsedData.map(
-        ({ _rowId, _isValid, _errors, ...rest }) => rest,
+        ({ _rowId, _rowNumber, _isValid, _errors, photoUrl, ...rest }) => rest,
       );
 
       const response = await fetch("/api/students/import", {
@@ -137,8 +133,14 @@ export default function StudentImportPage() {
       });
 
       if (!response.ok) {
-        const error = (await response.json()) as { error?: string };
-        throw new Error(error.error || "Gagal mengimport data");
+        const error = (await response.json()) as {
+          error?: string;
+          details?: string;
+        };
+        const errorMsg =
+          error.details || error.error || "Gagal mengimport data";
+        console.error("Import API error:", error);
+        throw new Error(errorMsg);
       }
 
       const result = (await response.json()) as { imported?: number };
@@ -157,24 +159,15 @@ export default function StudentImportPage() {
   };
 
   // Update row data
-  const handleUpdateRow = (
-    rowIndex: number,
-    field: string,
-    value: string | null,
-  ) => {
-    setParsedData((prev) => {
-      const updated = [...prev];
-      updated[rowIndex] = {
-        ...updated[rowIndex],
-        [field]: value,
-      };
-      return updated;
-    });
+  const handleUpdateRow = (rowId: string, patch: Partial<StudentImportRow>) => {
+    setParsedData((prev) =>
+      prev.map((row) => (row._rowId === rowId ? { ...row, ...patch } : row)),
+    );
   };
 
   // Download template
   const handleDownloadTemplate = () => {
-    window.open("/templates/student-import-template.csv", "_blank");
+    window.open("/templates/students-import-template.csv", "_blank");
   };
 
   return (

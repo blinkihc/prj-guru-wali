@@ -1,36 +1,70 @@
 // API Route: /api/journals
-// Handle MonthlyJournal CRUD operations
-// Created: 2025-01-14
-// Updated: 2025-10-15 - MVP v1.0.0 clean version
+// Last updated: 2025-10-19 - Integrated with Cloudflare D1 database
 
+import type { D1Database } from "@cloudflare/workers-types";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 
 export const runtime = "edge";
 
-// MVP v1.0.0: Start with empty data - users create their own
-const mockJournals: Array<{
+interface JournalRow {
   id: string;
-  studentId: string;
-  monitoringPeriod: string;
-  academicDesc: string | null;
-  academicFollowUp: string | null;
-  academicNotes: string | null;
-  characterDesc: string | null;
-  characterFollowUp: string | null;
-  characterNotes: string | null;
-  socialEmotionalDesc: string | null;
-  socialEmotionalFollowUp: string | null;
-  socialEmotionalNotes: string | null;
-  disciplineDesc: string | null;
-  disciplineFollowUp: string | null;
-  disciplineNotes: string | null;
-  potentialInterestDesc: string | null;
-  potentialInterestFollowUp: string | null;
-  potentialInterestNotes: string | null;
-  createdAt: string;
-}> = [];
+  student_id: string;
+  monitoring_period: string;
+  academic_desc: string | null;
+  academic_follow_up: string | null;
+  academic_notes: string | null;
+  character_desc: string | null;
+  character_follow_up: string | null;
+  character_notes: string | null;
+  social_emotional_desc: string | null;
+  social_emotional_follow_up: string | null;
+  social_emotional_notes: string | null;
+  discipline_desc: string | null;
+  discipline_follow_up: string | null;
+  discipline_notes: string | null;
+  potential_interest_desc: string | null;
+  potential_interest_follow_up: string | null;
+  potential_interest_notes: string | null;
+  created_at: string;
+}
+
+async function getDatabase(): Promise<D1Database> {
+  const { getRequestContext } = await import("@cloudflare/next-on-pages");
+  const ctx = getRequestContext();
+  const env = ctx?.env as { DB?: D1Database } | undefined;
+
+  if (!env?.DB) {
+    throw new Error("Database unavailable");
+  }
+
+  return env.DB;
+}
+
+function mapRowToJournal(row: JournalRow) {
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    monitoringPeriod: row.monitoring_period,
+    academicDesc: row.academic_desc,
+    academicFollowUp: row.academic_follow_up,
+    academicNotes: row.academic_notes,
+    characterDesc: row.character_desc,
+    characterFollowUp: row.character_follow_up,
+    characterNotes: row.character_notes,
+    socialEmotionalDesc: row.social_emotional_desc,
+    socialEmotionalFollowUp: row.social_emotional_follow_up,
+    socialEmotionalNotes: row.social_emotional_notes,
+    disciplineDesc: row.discipline_desc,
+    disciplineFollowUp: row.discipline_follow_up,
+    disciplineNotes: row.discipline_notes,
+    potentialInterestDesc: row.potential_interest_desc,
+    potentialInterestFollowUp: row.potential_interest_follow_up,
+    potentialInterestNotes: row.potential_interest_notes,
+    createdAt: row.created_at,
+  };
+}
 
 /**
  * POST /api/journals
@@ -43,7 +77,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as any;
+    const body = (await request.json()) as Record<string, unknown>;
 
     if (!body.studentId) {
       return NextResponse.json(
@@ -59,10 +93,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const db = await getDatabase();
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
     const newJournal = {
-      id: `journal-${Date.now()}`,
-      studentId: body.studentId,
-      monitoringPeriod: body.monitoringPeriod,
+      id,
+      studentId: body.studentId as string,
+      monitoringPeriod: body.monitoringPeriod as string,
       academicDesc: body.academicDesc || null,
       academicFollowUp: body.academicFollowUp || null,
       academicNotes: body.academicNotes || null,
@@ -78,10 +116,43 @@ export async function POST(request: NextRequest) {
       potentialInterestDesc: body.potentialInterestDesc || null,
       potentialInterestFollowUp: body.potentialInterestFollowUp || null,
       potentialInterestNotes: body.potentialInterestNotes || null,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
     };
 
-    mockJournals.push(newJournal);
+    await db
+      .prepare(
+        `INSERT INTO monthly_journals (
+          id, student_id, monitoring_period,
+          academic_desc, academic_follow_up, academic_notes,
+          character_desc, character_follow_up, character_notes,
+          social_emotional_desc, social_emotional_follow_up, social_emotional_notes,
+          discipline_desc, discipline_follow_up, discipline_notes,
+          potential_interest_desc, potential_interest_follow_up, potential_interest_notes,
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        newJournal.id,
+        newJournal.studentId,
+        newJournal.monitoringPeriod,
+        newJournal.academicDesc,
+        newJournal.academicFollowUp,
+        newJournal.academicNotes,
+        newJournal.characterDesc,
+        newJournal.characterFollowUp,
+        newJournal.characterNotes,
+        newJournal.socialEmotionalDesc,
+        newJournal.socialEmotionalFollowUp,
+        newJournal.socialEmotionalNotes,
+        newJournal.disciplineDesc,
+        newJournal.disciplineFollowUp,
+        newJournal.disciplineNotes,
+        newJournal.potentialInterestDesc,
+        newJournal.potentialInterestFollowUp,
+        newJournal.potentialInterestNotes,
+        newJournal.createdAt,
+      )
+      .run();
 
     return NextResponse.json({
       success: true,
@@ -110,14 +181,27 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
 
-    let filtered = mockJournals;
+    const db = await getDatabase();
+
+    let query =
+      "SELECT id, student_id, monitoring_period, academic_desc, academic_follow_up, academic_notes, character_desc, character_follow_up, character_notes, social_emotional_desc, social_emotional_follow_up, social_emotional_notes, discipline_desc, discipline_follow_up, discipline_notes, potential_interest_desc, potential_interest_follow_up, potential_interest_notes, created_at FROM monthly_journals WHERE 1 = 1";
+    const bindings: Array<string> = [];
+
     if (studentId) {
-      filtered = mockJournals.filter((j) => j.studentId === studentId);
+      query += " AND student_id = ?";
+      bindings.push(studentId);
     }
+
+    query += " ORDER BY created_at DESC";
+
+    const result = await db
+      .prepare(query)
+      .bind(...bindings)
+      .all<JournalRow>();
 
     return NextResponse.json({
       success: true,
-      journals: filtered,
+      journals: (result.results || []).map(mapRowToJournal),
     });
   } catch (error) {
     console.error("Get journals error:", error);

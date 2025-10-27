@@ -1,10 +1,15 @@
 // Student Report PDF Template
 // Created: 2025-01-14
-// Updated: 2025-01-14 - F4 Legal format with reference styling
+// Updated: 2025-10-20 - Gunakan tipe PDF generator agar bebas any
 // Full student report dengan profile, journals, meetings, dan interventions
 
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { Student } from "@/drizzle/schema/students";
+import type {
+  Intervention,
+  JournalEntry,
+  MeetingLog,
+} from "@/lib/services/pdf-generator-edge";
 
 // F4 Legal Size: 215.9mm × 330.2mm = 612pt × 936pt
 // Styling matches reference PDF with green headers (#C6E0B4) and black borders
@@ -144,9 +149,9 @@ const styles = StyleSheet.create({
 
 interface StudentReportProps {
   student: Student;
-  journals: any[];
-  meetings: any[];
-  interventions: any[];
+  journals: JournalEntry[];
+  meetings: MeetingLog[];
+  interventions: Intervention[];
   schoolName?: string;
   generatedAt?: Date;
 }
@@ -263,51 +268,53 @@ export function StudentReportDocument({
           <Page key={journal.id} size="A4" style={styles.page}>
             <View style={styles.header}>
               <Text style={styles.reportTitle}>
-                Jurnal Bulanan - {journal.monitoringPeriod}
+                Jurnal Bulanan - {journal.month} {journal.year}
               </Text>
               <Text style={styles.reportDate}>
                 Dibuat:{" "}
-                {new Date(journal.createdAt).toLocaleDateString("id-ID")}
+                {new Date(
+                  `${journal.year}-${journal.month}-01`,
+                ).toLocaleDateString("id-ID")}
               </Text>
             </View>
 
-            {journal.academicDesc && (
+            {journal.academicProgress && (
               <View style={styles.aspectBox}>
                 <Text style={styles.aspectTitle}>📚 Aspek Akademik</Text>
-                <Text style={styles.aspectText}>{journal.academicDesc}</Text>
+                <Text style={styles.aspectText}>
+                  {journal.academicProgress}
+                </Text>
               </View>
             )}
 
-            {journal.characterDesc && (
+            {journal.socialBehavior && (
               <View style={styles.aspectBox}>
                 <Text style={styles.aspectTitle}>⭐ Aspek Karakter</Text>
-                <Text style={styles.aspectText}>{journal.characterDesc}</Text>
+                <Text style={styles.aspectText}>{journal.socialBehavior}</Text>
               </View>
             )}
 
-            {journal.socialEmotionalDesc && (
+            {journal.emotionalState && (
               <View style={styles.aspectBox}>
                 <Text style={styles.aspectTitle}>
                   🤝 Aspek Sosial-Emosional
                 </Text>
-                <Text style={styles.aspectText}>
-                  {journal.socialEmotionalDesc}
-                </Text>
+                <Text style={styles.aspectText}>{journal.emotionalState}</Text>
               </View>
             )}
 
-            {journal.disciplineDesc && (
+            {journal.physicalHealth && (
               <View style={styles.aspectBox}>
                 <Text style={styles.aspectTitle}>📋 Aspek Kedisiplinan</Text>
-                <Text style={styles.aspectText}>{journal.disciplineDesc}</Text>
+                <Text style={styles.aspectText}>{journal.physicalHealth}</Text>
               </View>
             )}
 
-            {journal.potentialInterestDesc && (
+            {journal.spiritualDevelopment && (
               <View style={styles.aspectBox}>
                 <Text style={styles.aspectTitle}>🎯 Aspek Potensi & Minat</Text>
                 <Text style={styles.aspectText}>
-                  {journal.potentialInterestDesc}
+                  {journal.spiritualDevelopment}
                 </Text>
               </View>
             )}
@@ -332,16 +339,16 @@ export function StudentReportDocument({
                 <View key={meeting.id} style={styles.card}>
                   <Text style={styles.cardTitle}>{meeting.topic}</Text>
                   <Text style={styles.cardSubtitle}>
-                    {new Date(meeting.meetingDate).toLocaleDateString("id-ID", {
+                    {new Date(meeting.date).toLocaleDateString("id-ID", {
                       weekday: "long",
                       year: "numeric",
                       month: "long",
                       day: "numeric",
                     })}
                   </Text>
-                  {meeting.followUp && (
+                  {meeting.type && (
                     <Text style={styles.cardContent}>
-                      Tindak Lanjut: {meeting.followUp}
+                      Format: {meeting.type}
                     </Text>
                   )}
                   {meeting.notes && (
@@ -361,20 +368,12 @@ export function StudentReportDocument({
 
               {interventions.slice(0, 3).map((intervention) => (
                 <View key={intervention.id} style={styles.card}>
-                  <Text style={styles.cardTitle}>{intervention.title}</Text>
-                  <Text style={styles.cardSubtitle}>
-                    Status:{" "}
-                    {intervention.status === "active"
-                      ? "Aktif"
-                      : intervention.status === "completed"
-                        ? "Selesai"
-                        : "Dibatalkan"}
+                  <Text style={styles.cardTitle}>{intervention.issue}</Text>
+                  <Text style={styles.cardContent}>
+                    Langkah: {intervention.action}
                   </Text>
                   <Text style={styles.cardContent}>
-                    Masalah: {intervention.issue}
-                  </Text>
-                  <Text style={styles.cardContent}>
-                    Tujuan: {intervention.goal}
+                    Hasil: {intervention.result}
                   </Text>
                 </View>
               ))}

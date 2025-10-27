@@ -1,6 +1,6 @@
 // Seed data for local development
 // Run with: bun run db:seed
-// Last updated: 2025-10-12
+// Last updated: 2025-10-19 - Added logo URLs, student photo defaults, and cover illustrations
 
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
@@ -23,6 +23,9 @@ const sampleData = {
     cityDistrict: "Jakarta Selatan",
     address: "Jl. Pendidikan No. 123, Jakarta Selatan",
     schoolEmail: "info@smpn1jakarta.sch.id",
+    logoDinasUrl: "https://april.tigasama.com/covers/user-001/logo-dinas.png",
+    logoSekolahUrl:
+      "https://april.tigasama.com/covers/user-001/logo-sekolah.png",
   },
   students: [
     {
@@ -34,6 +37,7 @@ const sampleData = {
       gender: "L",
       parentContact: "081234567890",
       specialNotes: "Aktif dalam kegiatan olahraga",
+      photoUrl: null,
     },
     {
       id: "student-002",
@@ -44,6 +48,7 @@ const sampleData = {
       gender: "P",
       parentContact: "081234567891",
       specialNotes: "Berprestasi dalam bidang seni",
+      photoUrl: null,
     },
     {
       id: "student-003",
@@ -54,6 +59,7 @@ const sampleData = {
       gender: "L",
       parentContact: "081234567892",
       specialNotes: null,
+      photoUrl: null,
     },
   ],
   monthlyJournals: [
@@ -87,6 +93,13 @@ const sampleData = {
       topic: "Diskusi rencana karir dan minat belajar",
       followUp: "Orang tua akan mendampingi belajar di rumah",
       notes: "Pertemuan berlangsung positif",
+    },
+  ],
+  reportCoverIllustrations: [
+    {
+      id: "cover-001",
+      url: "https://april.tigasama.com/covers/user-001/cover-illustration-default.png",
+      label: "Default Illustration",
     },
   ],
 };
@@ -128,6 +141,12 @@ async function seed() {
     console.log("Inserting meeting logs...");
     await db.insert(schema.meetingLogs).values(sampleData.meetingLogs);
 
+    // Insert report cover illustrations
+    console.log("Inserting report cover illustrations...");
+    await db
+      .insert(schema.reportCoverIllustrations)
+      .values(sampleData.reportCoverIllustrations);
+
     console.log("✅ Seed data inserted successfully!");
     console.log("\nSummary:");
     console.log(`- 1 user`);
@@ -135,6 +154,9 @@ async function seed() {
     console.log(`- ${sampleData.students.length} students`);
     console.log(`- ${sampleData.monthlyJournals.length} monthly journals`);
     console.log(`- ${sampleData.meetingLogs.length} meeting logs`);
+    console.log(
+      `- ${sampleData.reportCoverIllustrations.length} report cover illustrations`,
+    );
   } catch (error) {
     console.error("❌ Error seeding database:", error);
     throw error;

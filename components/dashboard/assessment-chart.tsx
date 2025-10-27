@@ -1,6 +1,6 @@
 // Assessment Chart - Simple CSS-based donut chart
 // Shows students assessed vs not assessed
-// Last updated: 2025-10-17
+// Last updated: 2025-10-19 - Added accessible title for SVG
 
 "use client";
 
@@ -31,7 +31,14 @@ export function AssessmentChart({
       <div className="flex items-center justify-center">
         <div className="relative h-40 w-40">
           {/* Background circle */}
-          <svg className="h-full w-full -rotate-90 transform">
+          <svg
+            className="h-full w-full -rotate-90 transform"
+            role="img"
+            aria-labelledby="assessment-chart-title"
+          >
+            <title id="assessment-chart-title">
+              {`Perbandingan penilaian siswa: ${assessed} sudah dinilai, ${notAssessed} belum dinilai`}
+            </title>
             <circle
               cx="80"
               cy="80"

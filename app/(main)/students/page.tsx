@@ -1,6 +1,6 @@
 // Students Page - List and manage students
 // Created: 2025-10-14
-// Main page for student CRUD operations
+// Updated: 2025-10-20 - Refinement fetch response typing untuk lint compliance
 
 "use client";
 
@@ -45,8 +45,8 @@ export default function StudentsPage() {
         throw new Error("Failed to fetch students");
       }
 
-      const data = (await response.json()) as { students?: any[] };
-      setStudents(data.students || []);
+      const data: { students?: Student[] } = await response.json();
+      setStudents(data.students ?? []);
     } catch (err) {
       console.error("Fetch students error:", err);
       setError(err instanceof Error ? err.message : "Failed to load students");

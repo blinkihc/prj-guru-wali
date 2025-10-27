@@ -1,13 +1,14 @@
 // R2 Storage Service - Single Responsibility Principle
-// Handles all R2 bucket operations for PDF storage
+// Handles Cloudflare R2 object operations with configurable prefixes & content types
 // Created: 2025-10-15
-// Updated: 2025-10-15 - Use Web Crypto API for Edge Runtime compatibility
+// Updated: 2025-10-19 - Support generic binary uploads (images, PDFs, etc.)
 
-import type { R2Bucket } from "@cloudflare/workers-types";
+import type { R2Bucket, R2Object } from "@cloudflare/workers-types";
 
 export interface R2StorageConfig {
   bucket: R2Bucket;
   prefix?: string;
+  defaultContentType?: string;
 }
 
 export interface StorageMetadata {
@@ -17,6 +18,8 @@ export interface StorageMetadata {
   hash: string;
 }
 
+type BinaryContent = Buffer | Uint8Array | ArrayBuffer;
+
 /**
  * R2 Storage Service
  * Abstraction layer for Cloudflare R2 operations
@@ -24,10 +27,12 @@ export interface StorageMetadata {
 export class R2StorageService {
   private bucket: R2Bucket;
   private prefix: string;
+  private defaultContentType: string;
 
   constructor(config: R2StorageConfig) {
     this.bucket = config.bucket;
     this.prefix = config.prefix || "pdfs/";
+    this.defaultContentType = config.defaultContentType || "application/pdf";
   }
 
   /**
@@ -37,14 +42,23 @@ export class R2StorageService {
     return `${this.prefix}${key}`;
   }
 
+  private toUint8Array(content: BinaryContent): Uint8Array {
+    if (content instanceof Uint8Array) {
+      return content;
+    }
+
+    if (typeof Buffer !== "undefined" && content instanceof Buffer) {
+      return new Uint8Array(content);
+    }
+
+    return new Uint8Array(content);
+  }
+
   /**
    * Calculate content hash for cache validation using Web Crypto API
    */
-  private async calculateHash(content: Buffer): Promise<string> {
-    const hashBuffer = await crypto.subtle.digest(
-      "SHA-256",
-      new Uint8Array(content),
-    );
+  private async calculateHash(content: Uint8Array): Promise<string> {
+    const hashBuffer = await crypto.subtle.digest("SHA-256", content);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
@@ -54,23 +68,29 @@ export class R2StorageService {
    */
   async put(
     key: string,
-    content: Buffer,
-    metadata?: Partial<StorageMetadata>,
+    content: BinaryContent,
+    metadata?: Partial<StorageMetadata> & { contentType?: string },
   ): Promise<void> {
     const fullKey = this.getKey(key);
-    const hash = await this.calculateHash(content);
+    const bytes = this.toUint8Array(content);
+    const hash = await this.calculateHash(bytes);
+    const contentType = metadata?.contentType || this.defaultContentType;
 
     const customMetadata: StorageMetadata = {
-      contentType: "application/pdf",
+      contentType,
       generatedAt: new Date().toISOString(),
-      version: "1.0",
-      hash,
+      version: metadata?.version || "1.0",
+      hash: metadata?.hash || hash,
       ...metadata,
     };
 
+    // Ensure metadata reflects actual content type & hash
+    customMetadata.contentType = contentType;
+    customMetadata.hash = metadata?.hash || hash;
+
     await this.bucket.put(fullKey, content, {
       httpMetadata: {
-        contentType: "application/pdf",
+        contentType,
       },
       customMetadata: customMetadata as unknown as Record<string, string>,
     });
@@ -102,7 +122,12 @@ export class R2StorageService {
       return null;
     }
 
-    return object.customMetadata as unknown as StorageMetadata;
+    return (object.customMetadata || {
+      contentType: object.httpMetadata?.contentType,
+      generatedAt: object.uploaded?.toISOString() ?? new Date().toISOString(),
+      version: "1.0",
+      hash: "",
+    }) as unknown as StorageMetadata;
   }
 
   /**
@@ -114,7 +139,7 @@ export class R2StorageService {
   }
 
   /**
-   * Delete PDF from bucket
+   * Delete object from bucket
    */
   async delete(key: string): Promise<void> {
     const fullKey = this.getKey(key);
@@ -122,20 +147,19 @@ export class R2StorageService {
   }
 
   /**
-   * List all PDFs with optional prefix
+   * List objects by optional suffix (relative key)
    */
-  async list(prefix?: string): Promise<string[]> {
-    const searchPrefix = prefix ? this.getKey(prefix) : this.prefix;
-
-    const listed = await this.bucket.list({ prefix: searchPrefix });
-
-    return listed.objects.map((obj) => obj.key.replace(this.prefix, ""));
+  async list(suffixPrefix = ""): Promise<string[]> {
+    const fullPrefix = this.getKey(suffixPrefix);
+    const objects = await this.bucket.list({ prefix: fullPrefix });
+    return objects.objects.map((obj: R2Object) => obj.key);
   }
 
   /**
-   * Delete multiple keys (batch operation)
+   * Delete multiple objects by absolute keys
    */
   async deleteMany(keys: string[]): Promise<void> {
-    await Promise.all(keys.map((key) => this.delete(key)));
+    if (keys.length === 0) return;
+    await Promise.all(keys.map((key) => this.bucket.delete(key)));
   }
 }

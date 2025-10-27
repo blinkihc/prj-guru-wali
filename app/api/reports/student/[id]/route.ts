@@ -2,6 +2,7 @@
 // Generate full student PDF report with real database data
 // Updated: 2025-10-17 - Replaced mock data with real D1 database queries
 
+import type { D1Database } from "@cloudflare/workers-types";
 import { eq } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -11,8 +12,8 @@ import {
   monthlyJournals,
   students,
 } from "@/drizzle/schema";
-import { getSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db/client";
+import { getSession, type SessionData } from "@/lib/auth/session";
+import { type Database, getDb } from "@/lib/db/client";
 import { generateStudentReportPDF } from "@/lib/services/pdf-generator-edge";
 
 export const runtime = "edge";
@@ -35,12 +36,11 @@ export async function GET(
     const { id } = await params;
 
     // Get D1 binding (with fallback for local dev)
-    let db;
+    let db: Database | undefined;
     try {
-      // @ts-ignore - Cloudflare context not available in types
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      const env = ctx?.env as { DB?: D1Database } | undefined;
 
       if (!env?.DB) {
         console.warn("[StudentReport] Running in local dev mode");
@@ -60,6 +60,13 @@ export async function GET(
     }
 
     // Find student
+    if (!db) {
+      return NextResponse.json(
+        { error: "Database unavailable" },
+        { status: 503 },
+      );
+    }
+
     const [student] = await db
       .select()
       .from(students)
@@ -95,8 +102,9 @@ export async function GET(
       .orderBy(interventions.createdAt);
 
     // Get school name and teacher name from session (or use default)
-    const schoolName = (session as any).schoolName || "SMP Negeri 1";
-    const teacherName = (session as any).fullName || "Guru Wali";
+    const sessionData = session as SessionData;
+    const teacherName = sessionData.fullName || "Guru Wali";
+    const schoolName = "SMP Negeri 1";
 
     // Generate PDF using jsPDF (edge-compatible)
     const pdfBytes = generateStudentReportPDF(
@@ -141,7 +149,7 @@ export async function GET(
     const filename = `Laporan_${student.fullName.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
 
     // Return PDF as download
-    return new NextResponse(pdfBytes.buffer as any, {
+    return new NextResponse(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,

@@ -1,12 +1,23 @@
 // Settings API - Get and update user profile & school data
-// Last updated: 2025-10-17
+// Last updated: 2025-10-19 - Added explicit Cloudflare env typing
 
+import type { D1Database } from "@cloudflare/workers-types";
 import { compare, hash } from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { schoolProfiles, users } from "@/drizzle/schema";
 import { getSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db/client";
+import { type Database, getDb } from "@/lib/db/client";
+
+interface UpdateSettingsPayload {
+  fullName: string;
+  schoolName: string;
+  educationStage: string;
+  cityDistrict: string;
+  nipNuptk?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
 
 export const runtime = "edge";
 
@@ -23,12 +34,11 @@ export async function GET(_request: NextRequest) {
     }
 
     // Get D1 binding (with fallback for local dev)
-    let db;
+    let db: Database | undefined;
     try {
-      // @ts-ignore - Cloudflare context not available in types
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      const env = ctx?.env as { DB?: D1Database } | undefined;
 
       if (!env?.DB) {
         // Local dev fallback - return empty/default data
@@ -63,6 +73,13 @@ export async function GET(_request: NextRequest) {
 
     // Production: Fetch from database
     try {
+      if (!db) {
+        return NextResponse.json(
+          { error: "Database unavailable" },
+          { status: 503 },
+        );
+      }
+
       // Get user data
       const [user] = await db
         .select()
@@ -119,7 +136,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as any;
+    const body = (await request.json()) as Partial<UpdateSettingsPayload>;
 
     // Validate required fields
     if (!body.fullName || typeof body.fullName !== "string") {
@@ -151,12 +168,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Get D1 binding (with fallback for local dev)
-    let db;
+    let db: Database | undefined;
     try {
-      // @ts-ignore - Cloudflare context not available in types
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      const env = ctx?.env as { DB?: D1Database } | undefined;
 
       if (!env?.DB) {
         // Local dev fallback - just return success
@@ -177,6 +193,13 @@ export async function PUT(request: NextRequest) {
 
     // Production: Update database
     try {
+      if (!db) {
+        return NextResponse.json(
+          { error: "Database unavailable" },
+          { status: 503 },
+        );
+      }
+
       // If password change requested, verify current password
       if (body.currentPassword && body.newPassword) {
         const [user] = await db

@@ -1,5 +1,5 @@
 // Dashboard page - Home/Overview
-// Last updated: 2025-10-17
+// Last updated: 2025-10-19 - Stabilized data fetch with useCallback
 // Added real data from API
 // Added charts and visualizations
 // Added refresh functionality
@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AssessmentChart } from "@/components/dashboard/assessment-chart";
 import { MeetingsChart } from "@/components/dashboard/meetings-chart";
 import { SetupBanner } from "@/components/dashboard/setup-banner";
@@ -41,7 +41,7 @@ export default function Home() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
   // Fetch dashboard data
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsRefreshing(true);
 
@@ -68,7 +68,7 @@ export default function Home() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();

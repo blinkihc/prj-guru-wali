@@ -71,7 +71,15 @@ export function SettingsForm({ initialData, onSuccess }: SettingsFormProps) {
       }
 
       // Prepare request body
-      const body: any = {
+      const body: {
+        fullName: string;
+        nipNuptk: string;
+        schoolName: string;
+        educationStage: string;
+        cityDistrict: string;
+        currentPassword?: string;
+        newPassword?: string;
+      } = {
         fullName: formData.fullName,
         nipNuptk: formData.nipNuptk,
         schoolName: formData.schoolName,

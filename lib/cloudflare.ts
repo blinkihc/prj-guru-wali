@@ -2,13 +2,19 @@
 // Access R2, D1, and other Cloudflare resources
 // Updated: 2025-10-16
 
-import type { R2Bucket } from "@cloudflare/workers-types";
+import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 
 export interface CloudflareEnv {
   STORAGE?: R2Bucket;
-  DB?: any; // D1 database
+  DB?: D1Database;
   ENVIRONMENT?: string;
 }
+
+type CloudflareGlobal = typeof globalThis & {
+  STORAGE?: R2Bucket;
+  DB?: D1Database;
+  ENVIRONMENT?: string;
+};
 
 /**
  * Get Cloudflare environment from request context
@@ -17,8 +23,12 @@ export interface CloudflareEnv {
 export function getCloudflareEnv(): CloudflareEnv | null {
   try {
     // Try to get from @cloudflare/next-on-pages
-    // @ts-ignore - Dynamic require for Cloudflare context
-    const { getRequestContext } = require("@cloudflare/next-on-pages");
+    type NextOnPagesModule = {
+      getRequestContext?: () => { env?: CloudflareEnv };
+    };
+    const nextOnPages =
+      require("@cloudflare/next-on-pages") as NextOnPagesModule;
+    const getRequestContext = nextOnPages.getRequestContext;
     if (typeof getRequestContext === "function") {
       const ctx = getRequestContext();
       if (ctx?.env) {
@@ -27,7 +37,7 @@ export function getCloudflareEnv(): CloudflareEnv | null {
           STORAGE: ctx.env.STORAGE,
           DB: ctx.env.DB,
           ENVIRONMENT: ctx.env.ENVIRONMENT || "production",
-        };
+        } satisfies CloudflareEnv;
       }
     }
   } catch (_e) {
@@ -39,17 +49,18 @@ export function getCloudflareEnv(): CloudflareEnv | null {
 
   // Fallback: Check globalThis for bindings
   if (typeof globalThis !== "undefined") {
+    const globalEnv = globalThis as CloudflareGlobal;
     const hasAnyBinding =
-      (globalThis as any).DB ||
-      (globalThis as any).STORAGE ||
-      (globalThis as any).ENVIRONMENT;
+      globalEnv.DB !== undefined ||
+      globalEnv.STORAGE !== undefined ||
+      globalEnv.ENVIRONMENT !== undefined;
 
     if (hasAnyBinding) {
       return {
-        STORAGE: (globalThis as any).STORAGE,
-        DB: (globalThis as any).DB,
-        ENVIRONMENT: (globalThis as any).ENVIRONMENT || "production",
-      };
+        STORAGE: globalEnv.STORAGE,
+        DB: globalEnv.DB,
+        ENVIRONMENT: globalEnv.ENVIRONMENT || "production",
+      } satisfies CloudflareEnv;
     }
   }
 
@@ -69,6 +80,6 @@ export function getCloudflareEnv(): CloudflareEnv | null {
 export function isCloudflareEdge(): boolean {
   return (
     typeof globalThis !== "undefined" &&
-    (globalThis as any).STORAGE !== undefined
+    (globalThis as CloudflareGlobal).STORAGE !== undefined
   );
 }

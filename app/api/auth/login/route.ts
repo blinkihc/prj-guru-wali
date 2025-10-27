@@ -1,12 +1,10 @@
-// Login API route
-// Last updated: 2025-10-16
+// Login API route (Edge runtime compatible using hash-wasm bcrypt verify)
+// Latest update: 2025-10-20 - Gunakan tipe env terdefinisi, hilangkan penggunaan any pada binding D1
 
-import { compare } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import type { D1Database } from "@cloudflare/workers-types";
+import { bcryptVerify } from "hash-wasm";
 import { type NextRequest, NextResponse } from "next/server";
-import { users } from "@/drizzle/schema";
 import { createSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db/client";
 
 export const runtime = "edge";
 
@@ -27,12 +25,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Get D1 binding directly from Cloudflare Pages context
-    let db: any;
+    type LoginEnv = { DB?: D1Database };
+    let env: LoginEnv | undefined;
     try {
-      // @ts-ignore - Cloudflare context not available in types
-      const { getRequestContext } = await import("@cloudflare/next-on-pages");
-      const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      const requestContextModule = (await import(
+        "@cloudflare/next-on-pages"
+      )) as {
+        getRequestContext: () => { env?: LoginEnv };
+      };
+      const ctx = requestContextModule.getRequestContext();
+      env = ctx?.env;
 
       if (!env?.DB) {
         console.error("[Login] D1 binding not found in request context");
@@ -43,7 +45,6 @@ export async function POST(request: NextRequest) {
       }
 
       console.log("[Login] Got D1 binding from request context");
-      db = getDb(env.DB);
     } catch (error) {
       console.error("[Login] Error getting request context:", error);
       return NextResponse.json(
@@ -52,22 +53,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user by email
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email.toLowerCase()))
-      .limit(1);
+    console.log("[Login] Using raw SQL lookup version 2");
 
-    if (!user) {
+    // Find user by email using raw SQL to avoid Drizzle ORM quote issues
+    const database = env.DB;
+    const result = await database
+      .prepare(
+        "SELECT id, email, hashed_password, full_name, nip_nuptk, created_at FROM users WHERE email = ? LIMIT 1",
+      )
+      .bind(email.toLowerCase())
+      .first();
+
+    if (!result) {
       return NextResponse.json(
         { error: "Email atau password salah" },
         { status: 401 },
       );
     }
 
+    // Map snake_case to camelCase
+    const user = {
+      id: result.id as string,
+      email: result.email as string,
+      hashedPassword: result.hashed_password as string,
+      fullName: result.full_name as string,
+      nipNuptk: result.nip_nuptk as string | null,
+      createdAt: result.created_at as string,
+    };
+
     // Verify password with bcrypt
-    const isPasswordValid = await compare(password, user.hashedPassword);
+    const isPasswordValid = await bcryptVerify({
+      password,
+      hash: user.hashedPassword,
+    });
 
     if (!isPasswordValid) {
       return NextResponse.json(

@@ -1,13 +1,15 @@
 // API Route: /api/reports/semester
 // Generate semester report PDF with real database data
-// Updated: 2025-10-17 - Replaced mock data with real D1 database queries
+// Last updated: 2025-10-19 - Added explicit typing and edge-safe dummy handling
 
+import type { D1Database } from "@cloudflare/workers-types";
 import { eq, sql } from "drizzle-orm";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { monthlyJournals, students } from "@/drizzle/schema";
+import { reportCoverIllustrations } from "@/drizzle/schema/report-cover-illustrations";
 import { getSession } from "@/lib/auth/session";
-import { getDb } from "@/lib/db/client";
+import { type Database, getDb } from "@/lib/db/client";
 import {
   generateSemesterReportPDF,
   type MeetingRecordEntry,
@@ -15,10 +17,20 @@ import {
   type StudentJournalEntry,
 } from "@/lib/services/pdf-generator-edge";
 
+type DummyStudent = typeof students.$inferSelect;
+type DummyJournal = typeof monthlyJournals.$inferSelect;
+
+interface DummyDataModule {
+  dummyStudents: DummyStudent[];
+  dummyJournals: DummyJournal[];
+  dummyMeetingSummary: MeetingSummaryEntry[];
+}
+
 // Import dummy data for local testing (file is in .gitignore)
-let dummyData: any = null;
+let dummyData: DummyDataModule | null = null;
 try {
-  dummyData = require("@/lib/testing/dummy-data");
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  dummyData = require("@/lib/testing/dummy-data") as DummyDataModule;
 } catch (_e) {
   // Dummy data not available (production or file doesn't exist)
   dummyData = null;
@@ -33,7 +45,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = (await request.json()) as any;
+    const body = (await request.json()) as Partial<{
+      semester: string;
+      tahunAjaran: string;
+      periodeStart: string;
+      periodeEnd: string;
+    }>;
     const { semester, tahunAjaran, periodeStart, periodeEnd } = body;
 
     if (!semester || !tahunAjaran || !periodeStart || !periodeEnd) {
@@ -44,15 +61,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Get D1 binding (with fallback for local dev with dummy data)
-    let db;
-    let allStudents: any[] = [];
-    let allJournals: any[] = [];
+    let db: Database | undefined;
+    let allStudents: DummyStudent[] = [];
+    let allJournals: DummyJournal[] = [];
 
     try {
-      // @ts-ignore - Cloudflare context not available in types
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
-      const env = ctx?.env as any;
+      const env = ctx?.env as { DB?: D1Database } | undefined;
 
       if (!env?.DB) {
         // Local dev fallback - use dummy data if available
@@ -170,11 +186,23 @@ export async function POST(request: NextRequest) {
         { bulan: "September", jumlah: 2, format: "Kelompok", persentase: "2%" },
       ];
 
-    // Prepare cover options (Phase 1: Simple cover only, no DB query yet)
-    // TODO Phase 2: Fetch from user_settings table
+    // Fetch cover illustrations from database (Phase 2 Implementation)
+    let selectedIllustration = null;
+    if (db) {
+      const coverIllustrations = await db
+        .select()
+        .from(reportCoverIllustrations)
+        .orderBy(reportCoverIllustrations.createdAt)
+        .limit(1); // Get the most recent illustration
+
+      selectedIllustration = coverIllustrations[0] || null;
+    }
+
     const coverOptions = {
-      type: "simple" as const, // Default to simple cover for now
-      schoolName: "SMP Negeri 1",
+      type: selectedIllustration
+        ? ("illustration" as const)
+        : ("simple" as const),
+      schoolName: "SMP Negeri 1", // TODO: Fetch from user settings
       semester,
       academicYear: tahunAjaran,
       teacherName: session.fullName || "Nama Guru",
@@ -184,11 +212,12 @@ export async function POST(request: NextRequest) {
       logoDinasPendidikan: undefined, // Logo Dinas Pendidikan (uploaded in settings)
       logoSekolah: undefined, // Logo Sekolah (uploaded in settings)
 
-      // illustrationUrl: undefined    // For illustration cover type (Phase 2)
+      // Illustration URL from database
+      illustrationUrl: selectedIllustration?.url,
     };
 
     // Generate PDF using jsPDF with full lampirans (edge-compatible)
-    const pdfBytes = generateSemesterReportPDF(
+    const pdfBytes = await generateSemesterReportPDF(
       allStudents.map((s) => ({
         id: s.id,
         name: s.fullName,
@@ -206,7 +235,7 @@ export async function POST(request: NextRequest) {
     const filename = `Laporan_Semester_${semester}_${tahunAjaran.replace("/", "-")}_${new Date().toISOString().split("T")[0]}.pdf`;
 
     // Return PDF directly (caching will be added in next commit)
-    return new NextResponse(pdfBytes.buffer as any, {
+    return new NextResponse(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
