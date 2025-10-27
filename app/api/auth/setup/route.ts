@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
     // Get D1 binding (with fallback for local dev)
     let db: Database | undefined;
     try {
-      // @ts-expect-error - Cloudflare context types unavailable in Node runtime
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
       const env = ctx?.env as { DB?: D1Database } | undefined;
