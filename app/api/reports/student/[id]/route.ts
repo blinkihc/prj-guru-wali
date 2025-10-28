@@ -149,7 +149,7 @@ export async function GET(
     const filename = `Laporan_${student.fullName.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
 
     // Return PDF as download
-    return new NextResponse(pdfBytes, {
+    return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
