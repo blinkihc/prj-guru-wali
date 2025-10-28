@@ -120,7 +120,7 @@ export function ImportDialog({
     try {
       // Prepare data (remove helper fields)
       const studentsToImport = validData.map(
-        ({ _rowIndex, _errors, ...student }) => student,
+        ({ _rowId, _rowNumber, _isValid, _errors, ...student }) => student,
       );
 
       // Call import API
