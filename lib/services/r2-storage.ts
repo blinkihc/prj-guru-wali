@@ -58,7 +58,9 @@ export class R2StorageService {
    * Calculate content hash for cache validation using Web Crypto API
    */
   private async calculateHash(content: Uint8Array): Promise<string> {
-    const hashBuffer = await crypto.subtle.digest("SHA-256", content);
+    // Convert to ArrayBuffer for crypto.subtle.digest
+    const buffer = content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) as ArrayBuffer;
+    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
