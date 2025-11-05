@@ -1,9 +1,10 @@
 // Main layout with AppShell
-// Last updated: 2025-10-17
-// Added auth protection
+// Last updated: 2025-11-06
+// Added auth protection and PWA install component
 
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout";
+import { PWAInstall } from "@/components/pwa/pwa-install";
 import { getCurrentUser } from "@/lib/auth/session";
 
 // Force dynamic rendering because we use cookies for session
@@ -21,5 +22,10 @@ export default async function MainLayout({
     redirect("/login");
   }
 
-  return <AppShell user={user}>{children}</AppShell>;
+  return (
+    <>
+      <AppShell user={user}>{children}</AppShell>
+      <PWAInstall />
+    </>
+  );
 }

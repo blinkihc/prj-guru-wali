@@ -18,6 +18,29 @@ export const metadata: Metadata = {
   title: "Guru Wali Digital Companion",
   description:
     "Aplikasi pendamping guru wali untuk dokumentasi dan monitoring perkembangan siswa",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Guru Wali",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icon-152x152.png", sizes: "152x152", type: "image/png" }],
+  },
+  themeColor: "#3b82f6",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 export default function RootLayout({
