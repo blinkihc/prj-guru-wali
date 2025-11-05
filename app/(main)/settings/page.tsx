@@ -5,7 +5,7 @@
 
 export const runtime = "edge";
 
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { SettingsForm } from "@/components/settings/settings-form";
@@ -100,6 +100,28 @@ export default function SettingsPage() {
                 <Button className="w-full sm:w-auto">
                   <ImageIcon className="mr-2 h-4 w-4" />
                   Buka Pengaturan Cover
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Reset Data Navigation */}
+          <Card className="border-red-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-600">
+                <Trash2 className="h-5 w-5" />
+                Reset Data
+              </CardTitle>
+              <CardDescription>
+                Hapus semua data siswa, jurnal, pertemuan, dan laporan (untuk
+                development/testing)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/settings/reset">
+                <Button variant="destructive" className="w-full sm:w-auto">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Buka Reset Data
                 </Button>
               </Link>
             </CardContent>
