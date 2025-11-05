@@ -8,7 +8,12 @@ export const MAX_SOCIAL_SLOTS = 3;
 const HEADER_MAP: Record<
   keyof Omit<
     StudentImportRow,
-    "socialUsages" | "photoUrl" | "_rowId" | "_rowNumber" | "_isValid" | "_errors"
+    | "socialUsages"
+    | "photoUrl"
+    | "_rowId"
+    | "_rowNumber"
+    | "_isValid"
+    | "_errors"
   >,
   string
 > = {

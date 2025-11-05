@@ -91,7 +91,10 @@ export async function GET(
       nis: student.nis,
       nisn: student.nisn,
       classroom: student.classroom,
-      gender: (student.gender === "P" || student.gender === "L") ? student.gender : null,
+      gender:
+        student.gender === "P" || student.gender === "L"
+          ? student.gender
+          : null,
       birthPlace: student.birthPlace,
       birthDate: student.birthDate,
       religion: student.religion,

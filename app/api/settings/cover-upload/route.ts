@@ -108,7 +108,7 @@ export async function GET() {
     }
 
     // Query illustrations
-    let illustrations: typeof reportCoverIllustrations.$inferSelect[] = [];
+    let illustrations: (typeof reportCoverIllustrations.$inferSelect)[] = [];
     try {
       illustrations = await db
         .select()

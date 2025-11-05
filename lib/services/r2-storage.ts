@@ -59,7 +59,10 @@ export class R2StorageService {
    */
   private async calculateHash(content: Uint8Array): Promise<string> {
     // Convert to ArrayBuffer for crypto.subtle.digest
-    const buffer = content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) as ArrayBuffer;
+    const buffer = content.buffer.slice(
+      content.byteOffset,
+      content.byteOffset + content.byteLength,
+    ) as ArrayBuffer;
     const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");

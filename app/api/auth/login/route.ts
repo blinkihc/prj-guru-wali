@@ -1,8 +1,8 @@
-// Login API route (Edge runtime compatible using hash-wasm bcrypt verify)
-// Latest update: 2025-10-20 - Gunakan tipe env terdefinisi, hilangkan penggunaan any pada binding D1
+// Login API route (Edge runtime compatible using bcryptjs)
+// Latest update: 2025-11-06 - Replace hash-wasm with bcryptjs (WebAssembly not allowed in Cloudflare Workers)
 
 import type { D1Database } from "@cloudflare/workers-types";
-import { bcryptVerify } from "hash-wasm";
+import bcrypt from "bcryptjs";
 import { type NextRequest, NextResponse } from "next/server";
 import { createSession } from "@/lib/auth/session";
 
@@ -82,10 +82,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Verify password with bcrypt
-    const isPasswordValid = await bcryptVerify({
-      password,
-      hash: user.hashedPassword,
-    });
+    const isPasswordValid = await bcrypt.compare(password, user.hashedPassword);
 
     if (!isPasswordValid) {
       return NextResponse.json(

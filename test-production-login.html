@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Production Login</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .log { margin: 10px 0; padding: 10px; background: #f0f0f0; }
+        .error { background: #ffcccc; }
+        .success { background: #ccffcc; }
+    </style>
+</head>
+<body>
+    <h1>Production Login Test</h1>
+    
+    <div>
+        <h2>Test 1: Check API Endpoint</h2>
+        <button onclick="testEndpoint()">Test Endpoint</button>
+        <div id="endpoint-result"></div>
+    </div>
+
+    <div>
+        <h2>Test 2: Test Login</h2>
+        <input type="email" id="email" value="dev@guruwali.test" placeholder="Email">
+        <input type="password" id="password" value="dev123" placeholder="Password">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://guru-wali-app.pages.dev/api/auth/login';
+
+        async function testEndpoint() {
+            const resultDiv = document.getElementById('endpoint-result');
+            resultDiv.innerHTML = '<div class="log">Testing endpoint...</div>';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="log">
+                        <strong>Status:</strong> ${response.status}<br>
+                        <strong>Response:</strong> ${JSON.stringify(data, null, 2)}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="log error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('login-result');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            resultDiv.innerHTML = '<div class="log">Logging in...</div>';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                const className = response.ok ? 'success' : 'error';
+                resultDiv.innerHTML = `
+                    <div class="log ${className}">
+                        <strong>Status:</strong> ${response.status}<br>
+                        <strong>Response:</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="log error">
+                    <strong>Error:</strong> ${error.message}<br>
+                    <strong>Stack:</strong> ${error.stack}
+                </div>`;
+            }
+        }
+    </script>
+</body>
+</html>
