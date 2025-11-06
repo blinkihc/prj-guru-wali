@@ -1,0 +1,12 @@
+# Guru Wali - Robots.txt
+# Allow all crawlers
+
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /settings/
+
+# Sitemap
+Sitemap: https://wali.gurukul.my.id/sitemap.xml
