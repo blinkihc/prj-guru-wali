@@ -3,10 +3,10 @@
 // PWA Install Component - Handles service worker registration and install prompt
 // Created: 2025-11-06
 
-import { Button } from "@heroui/react";
 import { Download, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -146,19 +146,20 @@ export function PWAInstall() {
             <div className="flex gap-2">
               <Button
                 size="sm"
-                color="primary"
-                onPress={handleInstallClick}
-                startContent={<Download className="w-4 h-4" />}
+                onClick={handleInstallClick}
+                className="flex items-center gap-2"
               >
+                <Download className="w-4 h-4" />
                 Install
               </Button>
 
               <Button
                 size="sm"
-                variant="light"
-                onPress={handleDismiss}
-                startContent={<X className="w-4 h-4" />}
+                variant="outline"
+                onClick={handleDismiss}
+                className="flex items-center gap-2"
               >
+                <X className="w-4 h-4" />
                 Nanti
               </Button>
             </div>

@@ -4,10 +4,10 @@
 // Created: 2025-11-06 - For development and testing purposes
 // WARNING: This will permanently delete data!
 
-import { Button } from "@heroui/react";
 import { AlertTriangle, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface DataCounts {
   students: number;
@@ -29,7 +29,7 @@ export default function ResetDataPage() {
       const response = await fetch("/api/settings/reset");
       if (!response.ok) throw new Error("Failed to fetch counts");
 
-      const data = await response.json();
+      const data = (await response.json()) as { counts: DataCounts };
       setCounts(data.counts);
     } catch (error) {
       console.error("Error fetching counts:", error);
@@ -57,7 +57,7 @@ export default function ResetDataPage() {
         body: JSON.stringify({ confirm: confirmText }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as { error?: string };
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to reset data");
@@ -127,10 +127,11 @@ export default function ResetDataPage() {
           <h2 className="text-xl font-semibold">Data Saat Ini</h2>
           <Button
             size="sm"
-            variant="light"
-            onPress={fetchCounts}
-            startContent={<RefreshCw className="w-4 h-4" />}
+            variant="ghost"
+            onClick={fetchCounts}
+            className="flex items-center gap-2"
           >
+            <RefreshCw className="w-4 h-4" />
             Refresh
           </Button>
         </div>
@@ -161,13 +162,13 @@ export default function ResetDataPage() {
 
         {!showConfirm ? (
           <Button
-            color="danger"
-            variant="flat"
+            variant="destructive"
             size="lg"
-            onPress={() => setShowConfirm(true)}
-            startContent={<Trash2 className="w-5 h-5" />}
-            isDisabled={totalRecords === 0}
+            onClick={() => setShowConfirm(true)}
+            disabled={totalRecords === 0}
+            className="flex items-center gap-2"
           >
+            <Trash2 className="w-5 h-5" />
             Hapus Semua Data
           </Button>
         ) : (
@@ -195,24 +196,24 @@ export default function ResetDataPage() {
 
             <div className="flex gap-3">
               <Button
-                color="danger"
+                variant="destructive"
                 size="lg"
-                onPress={handleReset}
-                isLoading={loading}
-                isDisabled={confirmText !== "RESET_ALL_DATA"}
-                startContent={!loading && <Trash2 className="w-5 h-5" />}
+                onClick={handleReset}
+                disabled={loading || confirmText !== "RESET_ALL_DATA"}
+                className="flex items-center gap-2"
               >
+                {!loading && <Trash2 className="w-5 h-5" />}
                 {loading ? "Menghapus..." : "Konfirmasi Hapus"}
               </Button>
 
               <Button
-                variant="light"
+                variant="ghost"
                 size="lg"
-                onPress={() => {
+                onClick={() => {
                   setShowConfirm(false);
                   setConfirmText("");
                 }}
-                isDisabled={loading}
+                disabled={loading}
               >
                 Batal
               </Button>
