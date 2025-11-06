@@ -28,14 +28,14 @@ export async function middleware(request: NextRequest) {
   // Handle root path - redirect based on authentication
   if (pathname === "/") {
     if (session) {
-      return NextResponse.redirect(new URL("/students", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If accessing login page and already logged in, redirect to students
+  // If accessing login page and already logged in, redirect to dashboard
   if (pathname.startsWith("/login") && session) {
-    return NextResponse.redirect(new URL("/students", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Allow /setup page for logged-in users (they might need to complete setup)

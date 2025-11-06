@@ -53,7 +53,7 @@ function LoginForm() {
       toast.success("Login berhasil!");
 
       // Redirect to original page or dashboard
-      const from = searchParams.get("from") || "/";
+      const from = searchParams.get("from") || "/dashboard";
       router.push(from);
       router.refresh();
     } catch (error) {
