@@ -120,8 +120,8 @@ const ensureValue = (
 const createSocialUsageRow = (overrides?: Partial<SocialUsageFormRow>) => ({
   rowId: overrides?.rowId ?? overrides?.id ?? nanoid(),
   id: overrides?.id,
-  platform: ensureValue(overrides?.platform, !!overrides?.id),
-  username: ensureValue(overrides?.username, !!overrides?.id),
+  platform: ensureValue(overrides?.platform ?? DEFAULT_VALUE),
+  username: ensureValue(overrides?.username ?? DEFAULT_VALUE),
   isActive: overrides?.isActive ?? "inactive",
 });
 
@@ -143,42 +143,40 @@ const mapStudentSocialUsages = (
   );
 };
 
-const createInitialFormData = (student: StudentDialogStudent | null) => {
-  const isEdit = !!student;
-  return {
-    fullName: ensureValue(student?.fullName, isEdit),
-    nis: ensureValue(student?.nis, isEdit),
-    nisn: ensureValue(student?.nisn, isEdit),
-    classroom: ensureValue(student?.classroom, isEdit),
-    gender: ensureValue(student?.gender, isEdit),
-    birthPlace: ensureValue(student?.birthPlace, isEdit),
-    birthDate: ensureValue(student?.birthDate, isEdit),
-    religion: ensureValue(student?.religion, isEdit),
-    bloodType: ensureValue(student?.bloodType, isEdit),
-    economicStatus: ensureValue(student?.economicStatus, isEdit),
-    address: ensureValue(student?.address, isEdit),
-    phoneNumber: ensureValue(student?.phoneNumber, isEdit),
-    dream: ensureValue(student?.dream, isEdit),
-    extracurricular: ensureValue(student?.extracurricular, isEdit),
-    hobby: ensureValue(student?.hobby, isEdit),
-    photoUrl: ensureValue(student?.photoUrl, isEdit),
-    parentName: ensureValue(student?.parentName, isEdit),
-    parentContact: ensureValue(student?.parentContact, isEdit),
-    fatherName: ensureValue(student?.fatherName, isEdit),
-    fatherJob: ensureValue(student?.fatherJob, isEdit),
-    fatherIncome: ensureValue(student?.fatherIncome, isEdit),
-    motherName: ensureValue(student?.motherName, isEdit),
-    motherJob: ensureValue(student?.motherJob, isEdit),
-    motherIncome: ensureValue(student?.motherIncome, isEdit),
-    healthHistoryPast: ensureValue(student?.healthHistoryPast, isEdit),
-    healthHistoryCurrent: ensureValue(student?.healthHistoryCurrent, isEdit),
-    healthHistoryOften: ensureValue(student?.healthHistoryOften, isEdit),
-    characterStrength: ensureValue(student?.characterStrength, isEdit),
-    characterImprovement: ensureValue(student?.characterImprovement, isEdit),
-    specialNotes: ensureValue(student?.specialNotes, isEdit),
+const createInitialFormData = (student: StudentDialogStudent | null) =>
+  ({
+    fullName: ensureValue(student?.fullName),
+    nis: ensureValue(student?.nis),
+    nisn: ensureValue(student?.nisn),
+    classroom: ensureValue(student?.classroom),
+    gender: ensureValue(student?.gender),
+    birthPlace: ensureValue(student?.birthPlace),
+    birthDate: ensureValue(student?.birthDate),
+    religion: ensureValue(student?.religion),
+    bloodType: ensureValue(student?.bloodType),
+    economicStatus: ensureValue(student?.economicStatus),
+    address: ensureValue(student?.address),
+    phoneNumber: ensureValue(student?.phoneNumber),
+    dream: ensureValue(student?.dream),
+    extracurricular: ensureValue(student?.extracurricular),
+    hobby: ensureValue(student?.hobby),
+    photoUrl: ensureValue(student?.photoUrl),
+    parentName: ensureValue(student?.parentName),
+    parentContact: ensureValue(student?.parentContact),
+    fatherName: ensureValue(student?.fatherName),
+    fatherJob: ensureValue(student?.fatherJob),
+    fatherIncome: ensureValue(student?.fatherIncome),
+    motherName: ensureValue(student?.motherName),
+    motherJob: ensureValue(student?.motherJob),
+    motherIncome: ensureValue(student?.motherIncome),
+    healthHistoryPast: ensureValue(student?.healthHistoryPast),
+    healthHistoryCurrent: ensureValue(student?.healthHistoryCurrent),
+    healthHistoryOften: ensureValue(student?.healthHistoryOften),
+    characterStrength: ensureValue(student?.characterStrength),
+    characterImprovement: ensureValue(student?.characterImprovement),
+    specialNotes: ensureValue(student?.specialNotes),
     socialUsages: mapStudentSocialUsages(student?.socialUsages),
-  } satisfies StudentFormData;
-};
+  }) satisfies StudentFormData;
 
 const normalizeText = (value: string) =>
   value && value.trim() !== "" ? value.trim() : DEFAULT_VALUE;
@@ -311,20 +309,22 @@ function DataDiriTab({ value, isSubmitting, onChange }: SectionProps) {
         disabled={isSubmitting}
       />
 
-      <Field
-        id="phoneNumber"
-        label="Nomor Telepon/WA Siswa"
-        placeholder="08xxxxxxxxxx"
-        value={value.phoneNumber}
-        onChange={(e) => onChange("phoneNumber", e.target.value)}
-        disabled={isSubmitting}
-      />
-
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-        <p className="text-sm text-blue-800">
-          <strong>📸 Upload Foto:</strong> Foto siswa dapat diupload setelah
-          data tersimpan melalui halaman detail siswa.
-        </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field
+          id="phoneNumber"
+          label="Nomor Telepon/WA Siswa"
+          value={value.phoneNumber}
+          onChange={(e) => onChange("phoneNumber", e.target.value)}
+          disabled={isSubmitting}
+        />
+        <Field
+          id="photoUrl"
+          label="URL Foto"
+          placeholder="https://..."
+          value={value.photoUrl}
+          onChange={(e) => onChange("photoUrl", e.target.value)}
+          disabled={isSubmitting}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -786,7 +786,7 @@ export function StudentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-[640px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Edit Siswa" : "Tambah Siswa Baru"}
@@ -803,30 +803,18 @@ export function StudentDialog({
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TabKey)}
           >
-            <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 gap-1">
-              <TabsTrigger
-                value={TAB_KEYS.dataDiri}
-                className="text-xs sm:text-sm"
-              >
-                Data Diri
+            <TabsList className="w-full justify-start overflow-x-auto">
+              <TabsTrigger value={TAB_KEYS.dataDiri}>
+                Data Diri Siswa
               </TabsTrigger>
-              <TabsTrigger
-                value={TAB_KEYS.orangTua}
-                className="text-xs sm:text-sm"
-              >
-                Orang Tua
+              <TabsTrigger value={TAB_KEYS.orangTua}>
+                Orang Tua Kandung
               </TabsTrigger>
-              <TabsTrigger
-                value={TAB_KEYS.kesehatan}
-                className="text-xs sm:text-sm"
-              >
-                Kesehatan
+              <TabsTrigger value={TAB_KEYS.kesehatan}>
+                Riwayat Kesehatan
               </TabsTrigger>
-              <TabsTrigger
-                value={TAB_KEYS.karakter}
-                className="text-xs sm:text-sm"
-              >
-                Karakter
+              <TabsTrigger value={TAB_KEYS.karakter}>
+                Sifat / Perilaku
               </TabsTrigger>
             </TabsList>
 
@@ -867,67 +855,22 @@ export function StudentDialog({
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <RippleButton
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-                className="flex-1 sm:flex-initial"
-              >
-                Batal
-              </RippleButton>
-            </div>
-
-            <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
-              {activeTab !== TAB_KEYS.dataDiri && (
-                <RippleButton
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    const tabs = Object.values(TAB_KEYS);
-                    const currentIndex = tabs.indexOf(activeTab);
-                    if (currentIndex > 0) {
-                      setActiveTab(tabs[currentIndex - 1]);
-                    }
-                  }}
-                  disabled={isSubmitting}
-                  className="flex-1 sm:flex-initial"
-                >
-                  ← Sebelumnya
-                </RippleButton>
-              )}
-
-              {activeTab !== TAB_KEYS.karakter ? (
-                <RippleButton
-                  type="button"
-                  onClick={() => {
-                    const tabs = Object.values(TAB_KEYS);
-                    const currentIndex = tabs.indexOf(activeTab);
-                    if (currentIndex < tabs.length - 1) {
-                      setActiveTab(tabs[currentIndex + 1]);
-                    }
-                  }}
-                  disabled={isSubmitting}
-                  className="flex-1 sm:flex-initial"
-                >
-                  Selanjutnya →
-                </RippleButton>
-              ) : (
-                <RippleButton
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 sm:flex-initial"
-                >
-                  {isSubmitting
-                    ? "Menyimpan..."
-                    : isEdit
-                      ? "Perbarui"
-                      : "Simpan Data"}
-                </RippleButton>
-              )}
-            </div>
+          <DialogFooter className="gap-2">
+            <RippleButton
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Batal
+            </RippleButton>
+            <RippleButton type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? "Menyimpan..."
+                : isEdit
+                  ? "Perbarui"
+                  : "Tambah Siswa"}
+            </RippleButton>
           </DialogFooter>
         </form>
       </DialogContent>
