@@ -9,6 +9,8 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
+export const runtime = "edge";
+
 interface DataCounts {
   students: number;
   monthly_journals: number;
