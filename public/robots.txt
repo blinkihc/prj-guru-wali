@@ -8,5 +8,4 @@ Allow: /
 Disallow: /api/
 Disallow: /settings/
 
-# Sitemap
-Sitemap: https://wali.gurukul.my.id/sitemap.xml
+# No sitemap - private application requiring authentication
