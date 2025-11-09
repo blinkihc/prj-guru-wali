@@ -32,7 +32,17 @@
     "db:full:dev": "npm run db:setup:dev && npm run db:init:wrangler && npm run db:sync:wrangler",
     "test": "vitest",
     "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "analyze": "ANALYZE=true next build",
+    "analyze:bundle": "npx @next/bundle-analyzer",
+    "perf:test": "npx lighthouse http://localhost:3000 --output=json --output-path=./lighthouse-report.json --chrome-flags='--headless'",
+    "perf:view": "npx lighthouse http://localhost:3000 --view --chrome-flags='--headless'",
+    "perf:prod": "npx lighthouse https://wali.gurukul.my.id --output=json --output-path=./lighthouse-prod.json --chrome-flags='--headless'",
+    "deps:check": "npx depcheck",
+    "deps:update": "npm update",
+    "build:perf": "npm run build && npm run analyze",
+    "db:migrate:phase2": "wrangler d1 execute DB --local --file=./drizzle/migrations/0004_phase2_performance_indexes.sql",
+    "db:migrate:phase2:prod": "wrangler d1 execute DB --remote --file=./drizzle/migrations/0004_phase2_performance_indexes.sql"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

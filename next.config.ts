@@ -18,6 +18,29 @@ const nextConfig: NextConfig = {
     },
   },
 
+  // Webpack optimization for bundle splitting and tree shaking
+  webpack: (config, { isServer }) => {
+    // Enable tree shaking
+    config.optimization.usedExports = true;
+
+    // Simple chunk splitting for better caching
+    if (!isServer) {
+      config.optimization.splitChunks = {
+        chunks: "all",
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: "vendors",
+            priority: 10,
+            reuseExistingChunk: true,
+          },
+        },
+      };
+    }
+
+    return config;
+  },
+
   // Headers for PWA and optimization
   async headers() {
     return [
@@ -49,6 +72,15 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/:all*(svg|jpg|jpeg|png|gif|ico|webp)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/_next/static/chunks/(.*)",
         headers: [
           {
             key: "Cache-Control",

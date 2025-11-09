@@ -15,14 +15,48 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { AssessmentChart } from "@/components/dashboard/assessment-chart";
-import { MeetingsChart } from "@/components/dashboard/meetings-chart";
 import { SetupBanner } from "@/components/dashboard/setup-banner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedCard } from "@/components/ui/enhanced-card";
 import { SkeletonCard } from "@/components/ui/skeleton";
+
+// Lazy load chart components to reduce initial bundle size
+const AssessmentChart = dynamic(
+  () => import("@/components/dashboard/assessment-chart"),
+  {
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <CardTitle>Status Penilaian Siswa</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[300px]">
+          <div className="h-full animate-pulse bg-muted rounded-lg" />
+        </CardContent>
+      </Card>
+    ),
+  },
+);
+
+const MeetingsChart = dynamic(
+  () => import("@/components/dashboard/meetings-chart"),
+  {
+    ssr: false,
+    loading: () => (
+      <Card>
+        <CardHeader>
+          <CardTitle>Statistik Pertemuan</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[300px]">
+          <div className="h-full animate-pulse bg-muted rounded-lg" />
+        </CardContent>
+      </Card>
+    ),
+  },
+);
 
 interface DashboardStats {
   totalStudents: number;

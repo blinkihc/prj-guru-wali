@@ -2,6 +2,7 @@
 // Created: 2025-10-19 - Added GET/POST/DELETE endpoints for cover assets
 // Updated: 2025-10-20 - Gunakan tipe payload bersama & hilangkan any untuk lint compliance
 
+import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { desc, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { reportCoverIllustrations, schoolProfiles } from "@/drizzle/schema";
@@ -74,7 +75,7 @@ export async function GET() {
     try {
       const { getRequestContext } = await import("@cloudflare/next-on-pages");
       const ctx = getRequestContext();
-      const env = ctx?.env as { DB?: any };
+      const env = ctx?.env as { DB?: D1Database };
 
       if (!env?.DB) {
         console.warn("[CoverUpload] Database not available in context");
@@ -169,7 +170,7 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
 
     // Get upload bindings (requires R2 bucket)
-    let bucket: any; // R2Bucket type has conflicts between imports
+    let bucket: R2Bucket;
     let db: Database;
     try {
       const bindings = await getUploadBindings();

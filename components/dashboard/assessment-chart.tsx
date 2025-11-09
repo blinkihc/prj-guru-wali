@@ -10,7 +10,7 @@ interface AssessmentChartProps {
   percentage: number;
 }
 
-export function AssessmentChart({
+export default function AssessmentChart({
   assessed,
   notAssessed,
   percentage,

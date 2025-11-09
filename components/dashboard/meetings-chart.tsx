@@ -10,7 +10,7 @@ interface MeetingsChartProps {
   meetingsThisMonth: number;
 }
 
-export function MeetingsChart({
+export default function MeetingsChart({
   totalMeetings,
   meetingsThisWeek,
   meetingsThisMonth,
